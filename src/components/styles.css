@@ -1,0 +1,41 @@
+.modal-overlay {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+  text-align: center;
+}
+
+button {
+  display: block;
+  margin: 10px auto;
+  padding: 10px 20px;
+  border-radius: 4px;
+}
+
+.wallet-button {
+  background: #007bff;
+  color: white;
+}
+
+.approve-button.approved {
+  background: #28a745;
+}
+
+.subscribe-button {
+  background: #007bff;
+}
+
+.close-button {
+  background: #6c757d;
+}
