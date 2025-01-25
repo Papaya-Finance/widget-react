@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { SubscriptionModal, SubscriptionProvider } from "../src"; // Import your SDK
+import { SubscriptionModal, SubscriptionProvider } from "../src";
 
 const App: React.FC = () => {
   const [isOpen, setIsOpen] = useState(true);

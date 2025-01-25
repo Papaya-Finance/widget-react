@@ -6,3 +6,8 @@ declare global {
     ethereum?: Eip1193Provider & MetaMaskInpageProvider;
   }
 }
+
+declare module "*.svg" {
+  const content: string;
+  export default content;
+}
