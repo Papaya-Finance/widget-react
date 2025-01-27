@@ -7,9 +7,11 @@
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c --watch",
-    "start": "vite"
+    "rollup-build": "rollup -c",
+    "rollup-dev": "rollup -c --watch",
+    "dev": "vite",
+    "start": "vite preview",
+    "build": "vite build"
   },
   "dependencies": {
     "@metamask/providers": "^19.0.0",
