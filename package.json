@@ -8,7 +8,8 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "rollup -c",
-    "dev": "rollup -c --watch"
+    "dev": "rollup -c --watch",
+    "start": "vite"
   },
   "dependencies": {
     "@metamask/providers": "^19.0.0",
@@ -25,14 +26,17 @@
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
+    "@rollup/plugin-strip": "^3.0.4",
     "@rollup/plugin-typescript": "^11.0.0",
+    "@svgr/rollup": "^8.1.0",
     "@types/node": "^22.10.10",
     "@types/react": "^19.0.8",
     "@vitejs/plugin-react": "^4.3.4",
     "rollup": "^3.20.2",
-    "rollup-plugin-css-only": "^4.0.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-postcss": "^4.0.2",
     "typescript": "^5.1.6"
   },
   "peerDependencies": {

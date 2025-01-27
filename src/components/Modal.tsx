@@ -4,8 +4,8 @@ import { useSubscription } from "../context/SubscriptionProvider";
 import LogoIcon from "../assets/logo.svg";
 import SuccessIcon from "../assets/others/success.svg";
 import GreenTickIcon from "../assets/others/green-tick.svg";
-import "./styles.css";
 import { getAssets } from "../utils/resolver";
+import "./styles.css";
 
 interface ModalProps {
   open: boolean;

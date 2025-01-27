@@ -13,5 +13,10 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["src"]
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/custom.d.ts",
+    "src/global.d.ts"
+  ]
 }
