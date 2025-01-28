@@ -352,3 +352,13 @@
 .underline {
   text-decoration: none;
 }
+
+span[aria-live="polite"]:has(> span.button-loader) {
+  width: 100%;
+}
+
+.button-loader {
+  width: 100%;
+  height: 40px;
+  border-radius: 16px;
+}
