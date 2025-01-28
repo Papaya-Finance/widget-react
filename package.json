@@ -1,5 +1,5 @@
 {
-  "name": "@Papaya-Finance/widget-react",
+  "name": "@papaya-finance/widget-react",
   "type": "module",
   "version": "1.0.0",
   "description": "A component-based SDK for subscription payments",
@@ -8,7 +8,7 @@
   "types": "dist/types/index.d.ts",
   "repository": {
     "type": "git",
-    "url": "https://github.com/mtfuji25/widget-react.git"
+    "url": "https://github.com/Papaya-Finance/widget-react.git"
   },
   "scripts": {
     "build": "rollup -c",
