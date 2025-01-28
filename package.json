@@ -1,48 +1,64 @@
 {
-  "name": "@papaya/widget-react",
+  "name": "@Papaya-Finance/widget-react",
   "type": "module",
   "version": "1.0.0",
   "description": "A component-based SDK for subscription payments",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
-  "types": "dist/index.d.ts",
+  "types": "dist/types/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mtfuji25/widget-react.git"
+  },
   "scripts": {
-    "rollup-build": "rollup -c",
-    "rollup-dev": "rollup -c --watch",
-    "dev": "vite",
-    "start": "vite preview",
-    "build": "vite build"
+    "postinstall": "echo 'Please install required dependencies: react react-dom wagmi @reown/appkit @tanstack/react-query viem'",
+    "build": "rollup -c",
+    "dev": "rollup -c --watch"
   },
   "dependencies": {
-    "@metamask/providers": "^19.0.0",
     "@reown/appkit": "^1.6.5",
     "@reown/appkit-adapter-wagmi": "^1.6.5",
     "@reown/appkit-wallet-button": "^1.6.5",
     "@tanstack/react-query": "^5.64.2",
-    "ethers": "^6.0.0",
+    "@types/lodash.isequal": "^4.5.8",
+    "axios": "^1.7.9",
+    "lodash.isequal": "^4.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "viem": "^2.22.13",
-    "vite": "^6.0.11",
+    "react-loading-skeleton": "^3.5.0",
+    "viem": "^2.22.15",
     "wagmi": "^2.14.9"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^24.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-strip": "^3.0.4",
     "@rollup/plugin-typescript": "^11.0.0",
     "@svgr/rollup": "^8.1.0",
     "@types/node": "^22.10.10",
     "@types/react": "^19.0.8",
-    "@vitejs/plugin-react": "^4.3.4",
+    "@types/react-dom": "^19.0.3",
+    "autoprefixer": "^10.4.20",
+    "postcss": "^8.5.1",
+    "postcss-import": "^16.1.0",
+    "postcss-url": "^10.1.3",
     "rollup": "^3.20.2",
     "rollup-plugin-peer-deps-external": "^2.2.4",
     "rollup-plugin-postcss": "^4.0.2",
+    "rollup-plugin-url": "^3.0.1",
     "typescript": "^5.1.6"
   },
   "peerDependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "@reown/appkit": "^1.6.5",
+    "@reown/appkit-adapter-wagmi": "^1.6.5",
+    "@reown/appkit-wallet-button": "^1.6.5",
+    "@tanstack/react-query": "^5.64.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.22.15",
+    "wagmi": "^2.14.9"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

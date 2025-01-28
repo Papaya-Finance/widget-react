@@ -1,23 +1,24 @@
 import svgr from "@svgr/rollup";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import strip from "@rollup/plugin-strip";
 import typescript from "@rollup/plugin-typescript";
 import json from "@rollup/plugin-json";
-import peerDepsExternal from "rollup-plugin-peer-deps-external";
 import postcss from "rollup-plugin-postcss";
+import peerDepsExternal from "rollup-plugin-peer-deps-external";
+import url from "rollup-plugin-url";
 
 export default {
   input: "src/index.ts",
   output: [
     {
-      dir: "dist",
-      format: "cjs",
+      file: "dist/index.js",
+      format: "cjs", // CommonJS format
       sourcemap: true,
+      exports: "named",
     },
     {
-      dir: "dist",
-      format: "esm",
+      file: "dist/index.esm.js",
+      format: "esm", // ES Modules format
       sourcemap: true,
     },
   ],
@@ -28,36 +29,20 @@ export default {
       preferBuiltins: false,
     }),
     commonjs(),
-    typescript({
-      tsconfig: "./tsconfig.json",
-    }),
-    postcss({
-      extract: true,
-      modules: true,
-      sourcemap: true,
-    }),
+    typescript({ tsconfig: "./tsconfig.json" }),
+    postcss(),
     svgr({
-      svgo: true,
-      svgoConfig: {
-        plugins: [
-          {
-            name: "removeViewBox",
-            active: false,
-          },
-          {
-            name: "removeDimensions",
-            active: true,
-          },
-        ],
-      },
+      svgo: true, // Optimize SVGs
       titleProp: true,
       ref: true,
     }),
-    json(),
-    strip({
-      include: ["**/*.js", "**/*.jsx", "**/*.ts", "**/*.tsx"],
-      labels: ["client"],
+    url({
+      include: ["**/*.svg"], // Apply to all SVGs
+      limit: Infinity, // Set limit to 0 to always emit URLs (no inlining)
+      emitFiles: true,
+      fileName: "assets/[name][hash][extname]", // Custom path for output
     }),
+    json(),
   ],
   external: ["react", "react-dom"],
 };

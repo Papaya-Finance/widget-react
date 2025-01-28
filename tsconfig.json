@@ -4,7 +4,7 @@
     "module": "ESNext",
     "jsx": "react",
     "declaration": true,
-    "declarationDir": "dist",
+    "declarationDir": "dist/types",
     "emitDeclarationOnly": true,
     "outDir": "dist",
     "strict": true,
@@ -13,10 +13,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/custom.d.ts",
-    "src/global.d.ts"
-  ]
+  "include": ["src/**/*"]
 }
