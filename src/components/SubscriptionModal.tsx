@@ -304,15 +304,21 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                   Thank you for your subscription!
                 </p>
                 <p className="thank-you-text">
-                  Now you can manage your subscription from a convenient
-                  <a
-                    href="https://app.papaya.finance"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline"
-                  >
-                    dashboard
-                  </a>
+                  Now you can manage your subscription from a convenient{" "}
+                  <b>
+                    <u>
+                      <a
+                        target="_blank"
+                        href={
+                          account && account.address
+                            ? `https://app.papaya.finance/wallet/${account.address}`
+                            : "https://app.papaya.finance/"
+                        }
+                      >
+                        dashboard
+                      </a>
+                    </u>
+                  </b>
                   !
                 </p>
               </div>
