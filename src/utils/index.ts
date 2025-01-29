@@ -103,9 +103,6 @@ export const fetchTokenPrice = async (tokenId: string): Promise<number> => {
   }
 };
 
-import axios from "axios";
-import { networks } from "../constants/networks";
-
 /**
  * Fetches the current gas price for a given chain from MetaMask's Infura Gas API.
  * @param chainId The chain ID of the network.
