@@ -18,13 +18,13 @@ The Papaya Widget React SDK provides an easy way to integrate Papaya subscriptio
 Install the SDK using **npm**:  
 
 ```bash  
-npm install @Papaya-Finance/widget-react  
+npm install @papaya-finance/widget-react  
 ```  
 
 Or using **yarn**:  
 
 ```bash  
-yarn add @Papaya-Finance/widget-react  
+yarn add @papaya-finance/widget-react  
 ```  
 
 ---
