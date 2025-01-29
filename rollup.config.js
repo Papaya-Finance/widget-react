@@ -2,10 +2,10 @@ import svgr from "@svgr/rollup";
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import typescript from "@rollup/plugin-typescript";
+import url from "@rollup/plugin-url";
 import json from "@rollup/plugin-json";
 import postcss from "rollup-plugin-postcss";
 import peerDepsExternal from "rollup-plugin-peer-deps-external";
-import url from "rollup-plugin-url";
 
 export default {
   input: "src/index.ts",

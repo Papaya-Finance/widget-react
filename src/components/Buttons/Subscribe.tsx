@@ -78,7 +78,9 @@ export const Subscribe: React.FC<SubscribeProps> = ({
 
   useEffect(() => {
     if (isError && onError) {
-      onError("Failed to subscribe", getReadableErrorMessage(error));
+      if (!error.message?.includes("User rejected the request")) {
+        onError("Failed to subscribe", getReadableErrorMessage(error));
+      }
       setIsProcessing(false);
     }
   }, [isError, error]);

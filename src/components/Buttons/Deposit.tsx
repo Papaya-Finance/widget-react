@@ -72,7 +72,9 @@ export const Deposit: React.FC<DepositProps> = ({
 
   useEffect(() => {
     if (isError && onError) {
-      onError("Failed to deposit", getReadableErrorMessage(error));
+      if (!error.message?.includes("User rejected the request")) {
+        onError("Failed to deposit", getReadableErrorMessage(error));
+      }
       setIsProcessing(false);
     }
   }, [isError, error]);

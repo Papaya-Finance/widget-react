@@ -68,7 +68,9 @@ export const Approve: React.FC<ApproveProps> = ({
 
   useEffect(() => {
     if (isError && onError) {
-      onError("Failed to approve", getReadableErrorMessage(error));
+      if (!error.message?.includes("User rejected the request")) {
+        onError("Failed to approve", getReadableErrorMessage(error));
+      }
       setIsProcessing(false);
     }
   }, [isError, error]);
