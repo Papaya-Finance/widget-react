@@ -103,43 +103,43 @@ export const fetchTokenPrice = async (tokenId: string): Promise<number> => {
   }
 };
 
+import axios from "axios";
+import { networks } from "../constants/networks";
+
 /**
- * Fetches the current gas price for a given chain from Blocknative API.
+ * Fetches the current gas price for a given chain from MetaMask's Infura Gas API.
  * @param chainId The chain ID of the network.
- * @param authToken The authentication token for the API.
  * @returns Gas price in Gwei.
  */
 export const fetchNetworkFee = async (
-  chainId: number,
-  authToken: string
+  chainId: number
 ): Promise<{ gasPrice: string; nativeToken: string } | null> => {
   const network = networks.find((n) => n.chainId === chainId);
   if (!network) {
-    throw new Error(`Unsupported chain ID: ${chainId}`);
+    console.warn(`Unsupported chain ID: ${chainId}, defaulting to Ethereum`);
+    return {
+      gasPrice: "0",
+      nativeToken: "ETH",
+    };
   }
 
   try {
-    const url = `https://api.blocknative.com/gasprices/blockprices?chainid=${chainId}`;
-    const response = await axios.get(url, {
-      headers: { Authorization: `Bearer ${authToken}` },
-    });
+    const url = `https://gas.api.infura.io/v3/9f3e336d09da4444bb0a109b6dc57009/networks/${chainId}/suggestedGasFees`;
+    const { data } = await axios.get(url);
 
-    const blockPrices = response.data.blockPrices[0];
-    const mediumConfidencePrice = blockPrices?.estimatedPrices.find(
-      (price: { confidence: number }) => price.confidence === 90
-    );
-
-    if (!mediumConfidencePrice) {
-      console.warn("No medium confidence gas price available");
+    // Extract the medium gas fee estimate
+    const mediumGasPrice = data?.medium?.suggestedMaxFeePerGas;
+    if (!mediumGasPrice) {
+      console.warn("No medium gas price available");
       return null;
     }
 
     return {
-      gasPrice: mediumConfidencePrice.maxFeePerGas.toString(),
+      gasPrice: mediumGasPrice, // Returns Gwei directly
       nativeToken: network.nativeToken,
     };
   } catch (error) {
-    console.error("Error fetching gas price:", error);
+    console.error("Error fetching gas price from Infura:", error);
     return {
       gasPrice: "0",
       nativeToken: network.nativeToken,
