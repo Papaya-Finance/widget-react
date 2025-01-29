@@ -148,17 +148,14 @@ export const fetchNetworkFee = async (
  * Calculates the gas cost for a specific function execution.
  * @param chainId The chain ID of the network.
  * @param estimatedGas The estimated gas units for the function execution.
- * @param authToken The authentication token for the API.
- * @param nativeTokenPrice The price of the native token in USD.
  * @returns The gas cost in native tokens and USD.
  */
 export const fetchGasCost = async (
   chainId: number,
-  estimatedGas: bigint,
-  authToken: string
+  estimatedGas: bigint
 ): Promise<{ fee: string; usdValue: string } | null> => {
   try {
-    const networkFee = await fetchNetworkFee(chainId, authToken);
+    const networkFee = await fetchNetworkFee(chainId);
 
     if (!networkFee) {
       throw new Error("Failed to fetch gas price");

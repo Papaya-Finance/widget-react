@@ -91,7 +91,6 @@ export const useNetworkFee = (
   open: boolean,
   account: UseAppKitAccountReturn,
   chainId: number,
-  authToken: string,
   functionDetails: {
     abi: Abi;
     address: Address;
@@ -122,7 +121,17 @@ export const useNetworkFee = (
         setIsLoading(true);
 
         const chain = getChain(chainId);
-        const publicClient = createPublicClient({ chain, transport: http() });
+        let publicClient;
+        if (chainId == 1) {
+          publicClient = createPublicClient({
+            chain,
+            transport: http(
+              "https://mainnet.infura.io/v3/9f3e336d09da4444bb0a109b6dc57009"
+            ),
+          });
+        } else {
+          publicClient = createPublicClient({ chain, transport: http() });
+        }
 
         const estimatedGas = await publicClient.estimateContractGas({
           address: functionDetails.address,
@@ -138,7 +147,7 @@ export const useNetworkFee = (
             return;
           }
 
-          const gasCost = await fetchGasCost(chainId, estimatedGas, authToken);
+          const gasCost = await fetchGasCost(chainId, estimatedGas);
 
           setNetworkFee(gasCost);
         }
@@ -157,7 +166,7 @@ export const useNetworkFee = (
     return () => {
       isMounted = false;
     };
-  }, [open, chainId, authToken, memoizedAccount?.address, functionDetails]);
+  }, [open, chainId, memoizedAccount?.address, functionDetails]);
 
   return { networkFee, isLoading };
 };

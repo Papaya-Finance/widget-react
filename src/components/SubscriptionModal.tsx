@@ -101,7 +101,6 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
     open,
     account,
     network.chainId as number,
-    "AXGpo1rd2MxpQvJCsUUaX54skWwcYctS",
     functionDetails
   );
 
