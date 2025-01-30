@@ -108,7 +108,7 @@ export const networks = [mainnet, bsc, polygon, avalanche, arbitrum, base];
 export const wagmiAdapter = new WagmiAdapter({
   storage: createStorage({ storage: cookieStorage }),
   ssr: false,
-  projectId,
+  reownProjectId, // Pass Reown Project ID here
   networks,
 });
 ```
