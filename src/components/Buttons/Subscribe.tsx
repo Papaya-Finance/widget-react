@@ -6,10 +6,10 @@ import {
   calculateSubscriptionRate,
   getReadableErrorMessage,
 } from "../../utils";
-import { networks } from "../../constants/networks";
 
 interface SubscribeProps {
   chainId: number;
+  needsDeposit: boolean;
   canSubscribe: boolean;
   abi: Abi;
   toAddress: Address;
@@ -22,6 +22,7 @@ interface SubscribeProps {
 
 export const Subscribe: React.FC<SubscribeProps> = ({
   chainId = 1,
+  needsDeposit,
   canSubscribe,
   abi,
   toAddress,
@@ -59,34 +60,33 @@ export const Subscribe: React.FC<SubscribeProps> = ({
     });
   }
 
-  const activeNetwork = networks.find((network) => network.chainId === chainId);
-  const defaultConfirmations = activeNetwork?.defaultConfirmations || 1;
-
-  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    confirmations: defaultConfirmations,
-    hash,
-  });
+  const { isSuccess: isConfirmed, isError: isReceiptError } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   useEffect(() => {
     if (isConfirmed) {
       setIsProcessing(false);
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     }
   }, [isConfirmed, onSuccess]);
 
   useEffect(() => {
-    if (isError && onError) {
-      if (!error.message?.includes("User rejected the request")) {
-        onError("Failed to subscribe", getReadableErrorMessage(error));
+    if (isError || isReceiptError) {
+      if (!error?.message?.includes("User rejected the request")) {
+        onError?.("Failed to subscribe", getReadableErrorMessage(error));
       }
       setIsProcessing(false);
     }
-  }, [isError, error]);
+  }, [isError, isReceiptError, error]);
 
   return (
-    <form onSubmit={submit} style={{ width: "100%" }}>
+    <form
+      className={needsDeposit ? "hidden" : ""}
+      onSubmit={submit}
+      style={{ width: "100%" }}
+    >
       <button
         type="submit"
         disabled={!canSubscribe || isProcessing || isPending}

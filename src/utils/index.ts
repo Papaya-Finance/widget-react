@@ -144,73 +144,76 @@ export const fetchNetworkFee = async (
   }
 };
 
+const gasCostCache: Record<number, { usdValue: string; timestamp: number }> =
+  {};
+
 /**
  * Calculates the gas cost for a specific function execution.
  * @param chainId The chain ID of the network.
  * @param estimatedGas The estimated gas units for the function execution.
+ * @param cacheDurationMs Caches token price to avoid any rate limit
  * @returns The gas cost in native tokens and USD.
  */
 export const fetchGasCost = async (
   chainId: number,
-  estimatedGas: bigint
+  estimatedGas: bigint,
+  cacheDurationMs = 60000 // Cache USD price for 1 minute
 ): Promise<{ fee: string; usdValue: string } | null> => {
   try {
     const networkFee = await fetchNetworkFee(chainId);
-
     if (!networkFee) {
       throw new Error("Failed to fetch gas price");
     }
 
     const { gasPrice, nativeToken } = networkFee;
-
     if (gasPrice == "0") {
-      return {
-        fee: `0.000000000000 ${nativeToken}`,
-        usdValue: "($0.00)",
-      };
+      return { fee: `0.000000000000 ${nativeToken}`, usdValue: "($0.00)" };
     }
 
     const gasPriceInWei = parseUnits(gasPrice, 9);
-
     const gasCostInNativeToken = estimatedGas * gasPriceInWei;
-
-    const nativeTokenIdMap: Record<number, string> = {
-      137: "matic-network",
-      43114: "avalanche-2",
-      8453: "ethereum",
-      42161: "ethereum",
-      1: "ethereum",
-    };
-
-    const tokenId = nativeTokenIdMap[chainId] || "ethereum";
-    if (!tokenId) {
-      throw new Error(`Token ID not found for chain ID: ${chainId}`);
-    }
-
-    const rawNativeTokenPrice = await fetchTokenPrice(tokenId);
-
-    const nativeTokenPriceInWei = parseUnits(
-      rawNativeTokenPrice.toString(),
-      18
-    );
-
-    const gasCostInUsdBigInt =
-      (gasCostInNativeToken * nativeTokenPriceInWei) / BigInt(1e18);
-
     const gasCostInNativeTokenAsNumber = Number(gasCostInNativeToken) / 1e18;
 
-    const gasCostInUsd = Number(gasCostInUsdBigInt) / 1e18;
+    const fee = `${gasCostInNativeTokenAsNumber.toFixed(12)} ${nativeToken}`;
 
-    return {
-      fee: `${gasCostInNativeTokenAsNumber.toFixed(12)} ${nativeToken}`,
-      usdValue: `(~$${gasCostInUsd.toFixed(2)})`,
-    };
+    const now = Date.now();
+    let usdValue = gasCostCache[chainId]?.usdValue || "($0.00)";
+
+    if (
+      !gasCostCache[chainId] ||
+      now - gasCostCache[chainId].timestamp > cacheDurationMs
+    ) {
+      const nativeTokenIdMap: Record<number, string> = {
+        137: "matic-network",
+        43114: "avalanche-2",
+        8453: "ethereum",
+        42161: "ethereum",
+        1: "ethereum",
+      };
+
+      const tokenId = nativeTokenIdMap[chainId] || "ethereum";
+      if (!tokenId) {
+        throw new Error(`Token ID not found for chain ID: ${chainId}`);
+      }
+
+      const rawNativeTokenPrice = await fetchTokenPrice(tokenId);
+      const nativeTokenPriceInWei = parseUnits(
+        rawNativeTokenPrice.toString(),
+        18
+      );
+      const gasCostInUsdBigInt =
+        (gasCostInNativeToken * nativeTokenPriceInWei) / BigInt(1e18);
+      const gasCostInUsd = Number(gasCostInUsdBigInt) / 1e18;
+
+      usdValue = `(~$${gasCostInUsd.toFixed(2)})`;
+
+      gasCostCache[chainId] = { usdValue, timestamp: now };
+    }
+
+    return { fee, usdValue };
   } catch (error) {
     console.error("Error calculating gas cost:", error);
-    return {
-      fee: "0.000000000000 ETH",
-      usdValue: "($0.00)",
-    };
+    return { fee: "0.000000000000 ETH", usdValue: "($0.00)" };
   }
 };
 

@@ -2,7 +2,6 @@ import React, { FormEvent, useEffect, useState } from "react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import GreenTickIcon from "../../assets/others/green-tick.svg";
 import { Abi, Address } from "viem";
-import { networks } from "../../constants/networks";
 import { getReadableErrorMessage } from "../../utils";
 
 interface ApproveProps {
@@ -49,31 +48,26 @@ export const Approve: React.FC<ApproveProps> = ({
     });
   }
 
-  const activeNetwork = networks.find((network) => network.chainId === chainId);
-  const defaultConfirmations = activeNetwork?.defaultConfirmations || 1;
-
-  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    confirmations: defaultConfirmations,
-    hash,
-  });
+  const { isSuccess: isConfirmed, isError: isReceiptError } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   useEffect(() => {
     if (isConfirmed) {
       setIsProcessing(false);
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     }
   }, [isConfirmed, onSuccess]);
 
   useEffect(() => {
-    if (isError && onError) {
-      if (!error.message?.includes("User rejected the request")) {
-        onError("Failed to approve", getReadableErrorMessage(error));
+    if (isError || isReceiptError) {
+      if (!error?.message?.includes("User rejected the request")) {
+        onError?.("Failed to approve", getReadableErrorMessage(error));
       }
       setIsProcessing(false);
     }
-  }, [isError, error]);
+  }, [isError, isReceiptError, error]);
 
   return (
     <form onSubmit={submit} style={{ width: "100%" }}>

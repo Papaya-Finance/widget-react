@@ -1,7 +1,6 @@
 import React, { FormEvent, useEffect, useState } from "react";
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { Abi, Address } from "viem";
-import { networks } from "../../constants/networks";
 import { getReadableErrorMessage } from "../../utils";
 
 interface DepositProps {
@@ -53,34 +52,33 @@ export const Deposit: React.FC<DepositProps> = ({
     });
   }
 
-  const activeNetwork = networks.find((network) => network.chainId === chainId);
-  const defaultConfirmations = activeNetwork?.defaultConfirmations || 1;
-
-  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    confirmations: defaultConfirmations,
-    hash,
-  });
+  const { isSuccess: isConfirmed, isError: isReceiptError } =
+    useWaitForTransactionReceipt({
+      hash,
+    });
 
   useEffect(() => {
     if (isConfirmed) {
       setIsProcessing(false);
-      if (onSuccess) {
-        onSuccess();
-      }
+      onSuccess?.();
     }
   }, [isConfirmed, onSuccess]);
 
   useEffect(() => {
-    if (isError && onError) {
-      if (!error.message?.includes("User rejected the request")) {
-        onError("Failed to deposit", getReadableErrorMessage(error));
+    if (isError || isReceiptError) {
+      if (!error?.message?.includes("User rejected the request")) {
+        onError?.("Failed to deposit", getReadableErrorMessage(error));
       }
       setIsProcessing(false);
     }
-  }, [isError, error]);
+  }, [isError, isReceiptError, error]);
 
   return (
-    <form onSubmit={submit} style={{ width: "100%" }}>
+    <form
+      className={needsDeposit ? "" : "hidden"}
+      onSubmit={submit}
+      style={{ width: "100%" }}
+    >
       <button
         type="submit"
         disabled={
