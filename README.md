@@ -32,21 +32,46 @@ yarn add @papaya-finance/widget-react
 
 ## Prerequisites  
 
-1. **Project ID**  
-   Obtain your `projectId` from the [Reown Cloud Dashboard](https://cloud.reown.finance). Ensure your app's URL is whitelisted in the dashboard to allow usage of the SDK.  
+Before integrating the Reown SDK, ensure you have completed the following steps:
 
-2. **Peer Dependencies**  
-   The SDK requires the following dependencies in your project:  
+### 1. **Obtain Your Reown Project ID**  
 
-   ```bash  
-   npm install react react-dom @reown/appkit @reown/appkit-adapter-wagmi @reown/appkit-wallet-button wagmi @tanstack/react-query viem  
-   ```  
+To get started, you need a `reownProjectId` from the [Reown Cloud Dashboard](https://cloud.reown.com/sign-in). Follow these steps:  
 
-   Or using **yarn**:  
+- Sign in to the Reown Cloud Dashboard and create a **new project**.  
+- Select **AppKit** as the product.  
+- Choose your platform (**React** or **Next.js**) to use this SDK.  
+- Once the project is created, locate your **Project ID** on the dashboard.  
 
-   ```bash  
-   yarn add react react-dom @reown/appkit @reown/appkit-adapter-wagmi @reown/appkit-wallet-button wagmi @tanstack/react-query viem  
-   ```  
+🔹 **Important:** Ensure your app’s URL is whitelisted in the Reown dashboard.  
+
+- Navigate to **Configure Domains** and verify that your domain is whitelisted.  
+
+---
+
+### 2. **Obtain Your Papaya Project ID**  
+
+To get started, you need a `papayaProjectId` from the [Papaya Cloud Dashboard](https://cloud.papaya.finance/sign-in). Follow these steps:  
+
+[TODO]
+
+---
+
+### 3. **Install Peer Dependencies**  
+
+The SDK requires several dependencies to function correctly. Install them using either **npm** or **yarn**:
+
+#### **Using npm:**  
+
+```bash
+npm install react react-dom @reown/appkit @reown/appkit-adapter-wagmi @reown/appkit-wallet-button wagmi @tanstack/react-query viem
+```
+
+#### **Using yarn:**  
+
+```bash
+yarn add react react-dom @reown/appkit @reown/appkit-adapter-wagmi @reown/appkit-wallet-button wagmi @tanstack/react-query viem
+```
 
 ---
 
@@ -75,7 +100,8 @@ export const metadata = {
   icons: [],
 };
 
-export const projectId = "your_project_id"; // Obtain from Reown Cloud
+export const reownProjectId = "your_reown_project_id"; // Obtain from Reown Cloud
+export const papayaProjectId = "your_papaya_project_Id"; // Obtain from Papaya Cloud Dashboard
 
 export const networks = [mainnet, bsc, polygon, avalanche, arbitrum, base];
 
@@ -99,7 +125,7 @@ import ReactDOM from "react-dom";
 import App from "./App";
 import { SubscriptionProvider } from "@papaya-finance/widget-react";
 import { QueryClient } from "@tanstack/react-query";
-import { wagmiAdapter, metadata, projectId, networks } from "./config";
+import { wagmiAdapter, metadata, reownProjectId, papayaProjectId, networks } from "./config";
 
 const queryClient = new QueryClient();
 
@@ -109,7 +135,8 @@ const RootApp = () => (
     queryClient={queryClient}
     metadata={metadata}
     themeMode="light"
-    projectId={projectId}
+    reownProjectId={reownProjectId}
+    papayaProjectId={papayaProjectId}
     networks={networks}
   >
     <App />
@@ -173,7 +200,7 @@ In **Next.js**, you need to mark the **provider as a client component**:
 import React from "react";
 import { SubscriptionProvider } from "@papaya-finance/widget-react";
 import { QueryClient } from "@tanstack/react-query";
-import { wagmiAdapter, metadata, projectId, networks } from "./config";
+import { wagmiAdapter, metadata, reownProjectId, papayaProjectId, networks } from "./config"; // Config is same as React app
 
 const queryClient = new QueryClient();
 
@@ -184,7 +211,8 @@ const Providers = ({ children }) => {
       queryClient={queryClient}
       metadata={metadata}
       themeMode="light" // Your theme dark or light
-      projectId={projectId}
+      reownProjectId={reownProjectId}
+      papayaProjectId={papayaProjectId}
       networks={networks}
     >
       {children}
@@ -277,7 +305,8 @@ export default Page;
 | `wagmiAdapter`  | `WagmiAdapter`  | Adapter for wallet management.                  |  
 | `queryClient`   | `QueryClient`   | Query client for React Query.                   |  
 | `metadata`      | `object`        | Metadata for your application (name, url, etc). |  
-| `projectId`     | `string`        | Your unique project ID.                         |  
+| `reownProjectId`     | `string`        | Your unique Reown's project ID.                         |  
+| `papayaProjectId`     | `string`        | Your unique Papaya's project ID.                         |  
 | `networks`      | `AppKitNetwork[]` | List of supported networks.                     |  
 
 ### SubscriptionModal  
@@ -292,7 +321,6 @@ export default Page;
 
 ## Notes  
 
-- Ensure the app's URL is whitelisted in the Reown Cloud Dashboard for the project ID.  
 - The SDK internally handles the wallet provider and React Query provider when `wagmiAdapter` and `queryClient` are passed.  
 
 ---
