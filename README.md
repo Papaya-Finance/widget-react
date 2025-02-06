@@ -327,7 +327,7 @@ export default Page;
 
 ## Example App  
 
-Check out the [demo app](https://widget-demo-flame.vercel.app/) to see the SDK in action.  
+Check out the [React demo app](https://widget-demo-react.vercel.app/) and [Nex.js demo app](https://widget-demo-nextjs.vercel.app) to see the SDK in action.  
 
 ---
 
