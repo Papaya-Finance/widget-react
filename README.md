@@ -19,13 +19,13 @@ The Papaya Widget React SDK provides an easy way to integrate Papaya subscriptio
 Install the SDK using **npm**:  
 
 ```bash  
-npm install @papaya-finance/widget-react  
+npm install @papaya_fi/widget-react  
 ```  
 
 Or using **yarn**:  
 
 ```bash  
-yarn add @papaya-finance/widget-react  
+yarn add @papaya_fi/widget-react  
 ```  
 
 ---
@@ -123,7 +123,7 @@ Modify `src/index.js`:
 import React from "react";
 import ReactDOM from "react-dom";
 import App from "./App";
-import { SubscriptionProvider } from "@papaya-finance/widget-react";
+import { SubscriptionProvider } from "@papaya_fi/widget-react";
 import { QueryClient } from "@tanstack/react-query";
 import { wagmiAdapter, metadata, reownProjectId, papayaProjectId, networks } from "./config";
 
@@ -159,7 +159,7 @@ Modify `App.js` to include the **subscription modal**:
 
 ```javascript
 import React, { useState } from "react";
-import { SubscriptionModal, SubscriptionPayCycle } from "@papaya-finance/widget-react";
+import { SubscriptionModal, SubscriptionPayCycle } from "@papaya_fi/widget-react";
 
 function App() {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -198,7 +198,7 @@ In **Next.js**, you need to mark the **provider as a client component**:
 "use client"; // Required for Next.js 
 
 import React from "react";
-import { SubscriptionProvider } from "@papaya-finance/widget-react";
+import { SubscriptionProvider } from "@papaya_fi/widget-react";
 import { QueryClient } from "@tanstack/react-query";
 import { wagmiAdapter, metadata, reownProjectId, papayaProjectId, networks } from "./config"; // Config is same as React app
 
@@ -267,7 +267,7 @@ export default function RootLayout({ children }) {
 "use client";
 
 import React, { useState } from "react";
-import { SubscriptionModal, SubscriptionPayCycle } from "@papaya-finance/widget-react";
+import { SubscriptionModal, SubscriptionPayCycle } from "@papaya_fi/widget-react";
 
 const Page = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
