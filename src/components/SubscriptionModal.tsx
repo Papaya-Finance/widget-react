@@ -221,65 +221,74 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                 </p>
               </div>
             </div>
-            <Approve
-              chainId={network.chainId as number}
-              needsApproval={needsApproval}
-              approvalAmount={parseUnits(subscriptionDetails.cost, 6)}
-              abi={getTokenABI(tokenDetails.name)}
-              tokenContractAddress={tokenDetails.ercAddress as Address}
-              papayaAddress={tokenDetails.papayaAddress as Address}
-              onSuccess={() => {
-                setShowError(false);
-                setErrorTitle("Token approval failed");
-                setErrorDescription("");
-              }}
-              onError={(title, description) => {
-                setShowError(true);
-                setErrorTitle(title);
-                setErrorDescription(description);
-              }}
-            />
-            <Deposit
-              chainId={network.chainId as number}
-              needsDeposit={needsDeposit}
-              depositAmount={depositAmount}
-              abi={Papaya}
-              papayaAddress={tokenDetails.papayaAddress as Address}
-              hasSufficientBalance={hasSufficientBalance}
-              onSuccess={() => {
-                setShowError(false);
-                setErrorTitle("");
-                setErrorDescription("");
-              }}
-              onError={(title, description) => {
-                setShowError(true);
-                setErrorTitle(title);
-                setErrorDescription(description);
-              }}
-            />
-            <Subscribe
-              chainId={network.chainId as number}
-              needsDeposit={needsDeposit}
-              canSubscribe={canSubscribe}
-              abi={Papaya}
-              toAddress={subscriptionDetails.toAddress as Address}
-              subscriptionCost={parseUnits(subscriptionDetails.cost, 18)}
-              subscriptionCycle={subscriptionDetails.payCycle}
-              papayaAddress={tokenDetails.papayaAddress as Address}
-              onSuccess={() => {
-                setIsSubscriptionSuccessful(() => {
-                  return true;
-                });
-                setShowError(false);
-                setErrorTitle("");
-                setErrorDescription("");
-              }}
-              onError={(title, description) => {
-                setShowError(true);
-                setErrorTitle(title);
-                setErrorDescription(description);
-              }}
-            />
+            {isFeeLoading ? (
+              <div className="buttons-section">
+                <Skeleton className="buttons-loader" />
+                <Skeleton className="buttons-loader" />
+              </div>
+            ) : (
+              <div className="buttons-section">
+                <Approve
+                  chainId={network.chainId as number}
+                  needsApproval={needsApproval}
+                  approvalAmount={parseUnits(subscriptionDetails.cost, 6)}
+                  abi={getTokenABI(tokenDetails.name)}
+                  tokenContractAddress={tokenDetails.ercAddress as Address}
+                  papayaAddress={tokenDetails.papayaAddress as Address}
+                  onSuccess={() => {
+                    setShowError(false);
+                    setErrorTitle("Token approval failed");
+                    setErrorDescription("");
+                  }}
+                  onError={(title, description) => {
+                    setShowError(true);
+                    setErrorTitle(title);
+                    setErrorDescription(description);
+                  }}
+                />
+                <Deposit
+                  chainId={network.chainId as number}
+                  needsDeposit={needsDeposit}
+                  depositAmount={depositAmount}
+                  abi={Papaya}
+                  papayaAddress={tokenDetails.papayaAddress as Address}
+                  hasSufficientBalance={hasSufficientBalance}
+                  onSuccess={() => {
+                    setShowError(false);
+                    setErrorTitle("");
+                    setErrorDescription("");
+                  }}
+                  onError={(title, description) => {
+                    setShowError(true);
+                    setErrorTitle(title);
+                    setErrorDescription(description);
+                  }}
+                />
+                <Subscribe
+                  chainId={network.chainId as number}
+                  needsDeposit={needsDeposit}
+                  canSubscribe={canSubscribe}
+                  abi={Papaya}
+                  toAddress={subscriptionDetails.toAddress as Address}
+                  subscriptionCost={parseUnits(subscriptionDetails.cost, 18)}
+                  subscriptionCycle={subscriptionDetails.payCycle}
+                  papayaAddress={tokenDetails.papayaAddress as Address}
+                  onSuccess={() => {
+                    setIsSubscriptionSuccessful(() => {
+                      return true;
+                    });
+                    setShowError(false);
+                    setErrorTitle("");
+                    setErrorDescription("");
+                  }}
+                  onError={(title, description) => {
+                    setShowError(true);
+                    setErrorTitle(title);
+                    setErrorDescription(description);
+                  }}
+                />
+              </div>
+            )}
           </div>
           {showError && !isSubscriptionSuccessful && (
             <div className="modal-body-container body-error">

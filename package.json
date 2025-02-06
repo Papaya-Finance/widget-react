@@ -1,7 +1,7 @@
 {
   "name": "@papaya_fi/widget-react",
   "type": "module",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "A component-based React Widget SDK for subscription payments",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

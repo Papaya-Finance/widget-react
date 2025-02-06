@@ -25,6 +25,7 @@ export interface SubscriptionProviderProps {
   queryClient: QueryClient;
   metadata: Metadata;
   themeMode: ThemeMode;
-  projectId: string;
+  reownProjectId: string;
+  papayaProjectId: string;
   networks: AppKitNetwork[];
 }

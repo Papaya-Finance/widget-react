@@ -14,7 +14,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
   queryClient,
   metadata,
   themeMode = "light",
-  projectId,
+  reownProjectId,
+  papayaProjectId = "",
   networks,
 }) => {
   if (!wagmiAdapter || !wagmiAdapter.wagmiConfig) {
@@ -37,7 +38,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
 
   createAppKit({
     adapters: [wagmiAdapter],
-    projectId,
+    projectId: reownProjectId,
     networks: tupledNetworks,
     defaultNetwork: networks[0],
     metadata,
