@@ -265,8 +265,7 @@ export const useSubscriptionInfo = (
     (papayaBalance != null
       ? parseUnits(subscriptionDetails.cost, 6) -
         papayaBalance / parseUnits("1", 12)
-      : parseUnits(subscriptionDetails.cost, 6)) + parseUnits("0.01", 6); // Add some additional amount because of active subscriptions
-      // We many need to deposit full cost amount (but will discuss later)
+      : parseUnits(subscriptionDetails.cost, 6));
 
   const needsApproval = allowance == null || allowance < depositAmount;
 
