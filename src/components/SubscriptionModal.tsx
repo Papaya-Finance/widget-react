@@ -342,6 +342,9 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
             href="https://app.papaya.finance"
             target="_blank"
             rel="noopener noreferrer"
+            style={{
+              height: "100%",
+            }}
           >
             <img src={LogoIcon} alt="Papaya Logo" className="footer-logo" />
           </a>
