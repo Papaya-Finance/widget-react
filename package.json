@@ -1,8 +1,8 @@
 {
   "name": "@papaya-finance/widget-react",
   "type": "module",
-  "version": "1.0.0",
-  "description": "A component-based SDK for subscription payments",
+  "version": "1.0.1",
+  "description": "A component-based React Widget SDK for subscription payments",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/types/index.d.ts",

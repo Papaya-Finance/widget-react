@@ -1,6 +1,7 @@
 import { useReadContract } from "wagmi";
+import { estimateGas } from "@wagmi/core";
 import { SubscriptionDetails } from "../types";
-import { Abi, Address, createPublicClient, http, parseUnits } from "viem";
+import { Abi, Address, encodeFunctionData, parseUnits } from "viem";
 import { networks } from "../constants/networks";
 import { USDT } from "../contracts/evm/USDT";
 import { USDC } from "../contracts/evm/USDC";
@@ -14,6 +15,7 @@ import {
 } from "@reown/appkit";
 import { mainnet } from "viem/chains";
 import { Papaya } from "../contracts/evm/Papaya";
+import { wagmiConfig } from "../contexts/SubscriptionProvider";
 
 export const useTokenDetails = (
   network: UseAppKitNetworkReturn,
@@ -147,23 +149,24 @@ export const useNetworkFee = (
             break;
         }
 
-        const publicClient = createPublicClient({
-          chain,
-          transport: http(
-            `https://${chainPrefix}.infura.io/v3/9f3e336d09da4444bb0a109b6dc57009`
-          ),
-        });
+        if (!wagmiConfig) {
+          console.warn("Wagmi is not properly configured.");
+          setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+          return;
+        }
 
-        const estimatedGas = await publicClient.estimateContractGas({
-          address: functionDetails.address,
-          abi: functionDetails.abi,
-          functionName: functionDetails.functionName,
-          args: functionDetails.args,
-          account: functionDetails.account,
+        const estimatedGas = await estimateGas(wagmiConfig, {
+          to: functionDetails.address,
+          data: encodeFunctionData({
+            abi: functionDetails.abi,
+            functionName: functionDetails.functionName,
+            args: functionDetails.args,
+          }),
         });
 
         if (isMounted) {
           if (!estimatedGas) {
+            console.warn("Failed to estimate gas.")
             setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
             return;
           }
@@ -262,11 +265,10 @@ export const useSubscriptionInfo = (
     papayaBalance < parseUnits(subscriptionDetails.cost, 18);
 
   const depositAmount =
-    (papayaBalance != null
+    papayaBalance != null
       ? parseUnits(subscriptionDetails.cost, 6) -
         papayaBalance / parseUnits("1", 12)
-      : parseUnits(subscriptionDetails.cost, 6)) + parseUnits("0.01", 6); // Add some additional amount because of active subscriptions
-      // We many need to deposit full cost amount (but will discuss later)
+      : parseUnits(subscriptionDetails.cost, 6);
 
   const needsApproval = allowance == null || allowance < depositAmount;
 

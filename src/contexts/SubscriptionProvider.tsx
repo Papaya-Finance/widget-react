@@ -5,6 +5,8 @@ import { SubscriptionProviderProps } from "../types";
 import { Config, cookieToInitialState, WagmiProvider } from "wagmi";
 import { AppKitNetwork } from "@reown/appkit/networks";
 
+let wagmiConfig: Config | null = null;
+
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
   children,
   cookies,
@@ -20,6 +22,8 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
       "Invalid wagmiAdapter configuration. Please check your setup."
     );
   }
+
+  wagmiConfig = wagmiAdapter.wagmiConfig as Config; // Store wagmiConfig globally
 
   const initialState = cookieToInitialState(
     wagmiAdapter.wagmiConfig as Config,
@@ -58,3 +62,5 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
     </WagmiProvider>
   );
 };
+
+export { wagmiConfig };
