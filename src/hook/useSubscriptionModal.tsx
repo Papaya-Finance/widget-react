@@ -166,7 +166,7 @@ export const useNetworkFee = (
 
         if (isMounted) {
           if (!estimatedGas) {
-            console.warn("Failed to estimate gas.")
+            console.warn("Failed to estimate gas.");
             setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
             return;
           }
@@ -265,7 +265,7 @@ export const useSubscriptionInfo = (
     papayaBalance < parseUnits(subscriptionDetails.cost, 18);
 
   const depositAmount =
-    papayaBalance != null
+    papayaBalance != null && papayaBalance > BigInt(0)
       ? parseUnits(subscriptionDetails.cost, 6) -
         papayaBalance / parseUnits("1", 12)
       : parseUnits(subscriptionDetails.cost, 6);

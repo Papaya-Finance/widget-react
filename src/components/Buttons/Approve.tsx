@@ -7,6 +7,7 @@ import { getReadableErrorMessage } from "../../utils";
 interface ApproveProps {
   chainId: number;
   needsApproval: boolean;
+  needsDeposit: boolean;
   approvalAmount: bigint;
   abi: Abi;
   tokenContractAddress: Address;
@@ -18,6 +19,7 @@ interface ApproveProps {
 export const Approve: React.FC<ApproveProps> = ({
   chainId,
   needsApproval,
+  needsDeposit,
   approvalAmount,
   abi,
   tokenContractAddress,
@@ -37,6 +39,9 @@ export const Approve: React.FC<ApproveProps> = ({
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    // Only allow submission if needsDeposit is true
+    if (!needsDeposit) return;
 
     setIsProcessing(true);
 
@@ -69,14 +74,20 @@ export const Approve: React.FC<ApproveProps> = ({
     }
   }, [isError, isReceiptError, error]);
 
+  // Disable the button if:
+  // - The approval is already confirmed,
+  // - Approval is not needed,
+  // - Deposit is not needed,
+  // - Or if the transaction is processing or pending.
+  const isButtonDisabled =
+    isConfirmed || !needsApproval || !needsDeposit || isProcessing || isPending;
+
   return (
     <form onSubmit={submit} style={{ width: "100%" }}>
       <button
         type="submit"
-        disabled={!needsApproval || isProcessing || isPending}
-        className={`approve-button ${
-          !needsApproval || isProcessing || isPending ? "disabled" : ""
-        }`}
+        disabled={isButtonDisabled}
+        className={`approve-button ${isButtonDisabled ? "disabled" : ""}`}
       >
         {isProcessing || isPending ? (
           <div className="spinner-container">
@@ -86,7 +97,9 @@ export const Approve: React.FC<ApproveProps> = ({
         ) : (
           <>
             <p className="button-text">Approve</p>
-            {(isConfirmed || !needsApproval) && (
+            {/* Show green tick if approval is confirmed, approval is not needed,
+                or deposit is not needed */}
+            {(isConfirmed || !needsApproval || !needsDeposit) && (
               <img
                 src={GreenTickIcon}
                 alt="Approve Successful"

@@ -231,6 +231,7 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                 <Approve
                   chainId={network.chainId as number}
                   needsApproval={needsApproval}
+                  needsDeposit={needsDeposit}
                   approvalAmount={parseUnits(subscriptionDetails.cost, 6)}
                   abi={getTokenABI(tokenDetails.name)}
                   tokenContractAddress={tokenDetails.ercAddress as Address}
@@ -344,6 +345,9 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
             rel="noopener noreferrer"
             style={{
               height: "100%",
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
             }}
           >
             <img src={LogoIcon} alt="Papaya Logo" className="footer-logo" />
