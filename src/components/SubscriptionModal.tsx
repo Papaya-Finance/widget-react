@@ -7,7 +7,6 @@ import LogoIcon from "../assets/logo.svg";
 import SuccessIcon from "../assets/others/success.svg";
 import FailIcon from "../assets/others/fail.svg";
 import { Approve } from "./Buttons/Approve";
-import { Deposit } from "./Buttons/Deposit";
 import { Subscribe } from "./Buttons/Subscribe";
 import { SubscriptionDetails } from "../types";
 import {
@@ -20,17 +19,11 @@ import { calculateSubscriptionRate } from "../utils";
 import "react-loading-skeleton/dist/skeleton.css";
 import "../styles/styles.css";
 
-interface ModalProps {
+export const SubscriptionModal: React.FC<{
   open: boolean;
   onClose: () => void;
   subscriptionDetails: SubscriptionDetails;
-}
-
-export const SubscriptionModal: React.FC<ModalProps> = ({
-  open,
-  onClose,
-  subscriptionDetails,
-}) => {
+}> = ({ open, onClose, subscriptionDetails }) => {
   const [isSubscriptionSuccessful, setIsSubscriptionSuccessful] =
     useState(false);
   const [showError, setShowError] = useState(false);
@@ -52,7 +45,6 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
     needsDeposit,
     depositAmount,
     needsApproval,
-    hasSufficientBalance,
     canSubscribe,
     isUnsupportedNetwork,
     isUnsupportedToken,
@@ -238,24 +230,6 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                   papayaAddress={tokenDetails.papayaAddress as Address}
                   onSuccess={() => {
                     setShowError(false);
-                    setErrorTitle("Token approval failed");
-                    setErrorDescription("");
-                  }}
-                  onError={(title, description) => {
-                    setShowError(true);
-                    setErrorTitle(title);
-                    setErrorDescription(description);
-                  }}
-                />
-                <Deposit
-                  chainId={network.chainId as number}
-                  needsDeposit={needsDeposit}
-                  depositAmount={depositAmount}
-                  abi={Papaya}
-                  papayaAddress={tokenDetails.papayaAddress as Address}
-                  hasSufficientBalance={hasSufficientBalance}
-                  onSuccess={() => {
-                    setShowError(false);
                     setErrorTitle("");
                     setErrorDescription("");
                   }}
@@ -270,10 +244,13 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                   needsDeposit={needsDeposit}
                   canSubscribe={canSubscribe}
                   abi={Papaya}
+                  tokenName={tokenDetails.name}
+                  tokenAddress={tokenDetails.ercAddress as Address}
                   toAddress={subscriptionDetails.toAddress as Address}
                   subscriptionCost={parseUnits(subscriptionDetails.cost, 18)}
                   subscriptionCycle={subscriptionDetails.payCycle}
                   papayaAddress={tokenDetails.papayaAddress as Address}
+                  depositAmount={depositAmount}
                   onSuccess={() => {
                     setIsSubscriptionSuccessful(() => {
                       return true;

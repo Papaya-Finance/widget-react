@@ -1,7 +1,7 @@
 {
   "name": "@papaya_fi/widget-react",
   "type": "module",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "A component-based React Widget SDK for subscription payments",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -15,12 +15,15 @@
     "dev": "rollup -c --watch"
   },
   "dependencies": {
+    "@1inch/solidity-utils": "^6.4.0",
     "@reown/appkit": "^1.6.5",
     "@reown/appkit-adapter-wagmi": "^1.6.5",
     "@reown/appkit-wallet-button": "^1.6.5",
     "@tanstack/react-query": "^5.64.2",
     "@types/lodash.isequal": "^4.5.8",
     "axios": "^1.7.9",
+    "ethers": "5.7.1",
+    "ethers6": "npm:ethers",
     "lodash.isequal": "^4.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -32,7 +35,7 @@
     "@rollup/plugin-commonjs": "^24.0.0",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.0.1",
-    "@rollup/plugin-typescript": "^11.0.0",
+    "@rollup/plugin-typescript": "^12.1.2",
     "@rollup/plugin-url": "^8.0.2",
     "@svgr/rollup": "^8.1.0",
     "@types/node": "^22.10.10",

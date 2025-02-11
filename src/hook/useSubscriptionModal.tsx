@@ -22,7 +22,7 @@ export const useTokenDetails = (
   subscriptionDetails: SubscriptionDetails
 ) => {
   const defaultNetwork = networks.find((n) => n.chainId === 1);
-  if (!defaultNetwork) {
+  if (!defaultNetwork || !defaultNetwork.tokens) {
     throw new Error(
       "Default network (Ethereum) is missing in the configuration."
     );
@@ -272,9 +272,6 @@ export const useSubscriptionInfo = (
 
   const needsApproval = allowance == null || allowance < depositAmount;
 
-  const hasSufficientBalance =
-    tokenBalance != null && tokenBalance >= depositAmount;
-
   const canSubscribe =
     !needsDeposit &&
     papayaBalance != null &&
@@ -287,7 +284,6 @@ export const useSubscriptionInfo = (
     needsDeposit,
     depositAmount,
     needsApproval,
-    hasSufficientBalance,
     canSubscribe,
   };
 };
@@ -334,7 +330,6 @@ export const useSubscriptionModal = (
     needsDeposit: false,
     depositAmount: BigInt(0),
     needsApproval: false,
-    hasSufficientBalance: false,
     canSubscribe: false,
   };
 

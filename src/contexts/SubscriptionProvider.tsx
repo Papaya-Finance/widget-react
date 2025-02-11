@@ -4,8 +4,10 @@ import { createAppKit } from "@reown/appkit/react";
 import { SubscriptionProviderProps } from "../types";
 import { Config, cookieToInitialState, WagmiProvider } from "wagmi";
 import { AppKitNetwork } from "@reown/appkit/networks";
+import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
 
-let wagmiConfig: Config | null = null;
+let wagmiAdapter: WagmiAdapter;
+let wagmiConfig: Config;
 
 export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
   children,
@@ -24,6 +26,7 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
     );
   }
 
+  wagmiAdapter = wagmiAdapter;
   wagmiConfig = wagmiAdapter.wagmiConfig as Config; // Store wagmiConfig globally
 
   const initialState = cookieToInitialState(
@@ -64,4 +67,4 @@ export const SubscriptionProvider: React.FC<SubscriptionProviderProps> = ({
   );
 };
 
-export { wagmiConfig };
+export { wagmiAdapter, wagmiConfig };

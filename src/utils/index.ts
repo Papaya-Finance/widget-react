@@ -3,41 +3,36 @@
 import { networks } from "../constants/networks";
 import axios from "axios";
 // Chain Icons
-import EthereumIcon from "../assets/chains/ethereum.svg";
 import BnbIcon from "../assets/chains/bnb.svg";
 import PolygonIcon from "../assets/chains/polygon.svg";
-import AvalancheIcon from "../assets/chains/avalanche.svg";
-import ArbitrumIcon from "../assets/chains/arbitrum.svg";
-import BaseIcon from "../assets/chains/base.svg";
-// Not used for now
-// import ScrollIcon from "../assets/chains/scroll.svg";
-// import ZkSyncIcon from "../assets/chains/zksync.svg";
-// import SeiIcon from "../assets/chains/sei.svg";
-// import SolanaIcon from "../assets/chains/solana.svg";
-// import TonIcon from "../assets/chains/ton.svg";
 // Token Icons
 import UsdtIcon from "../assets/tokens/usdt.svg";
 import UsdcIcon from "../assets/tokens/usdc.svg";
-import PyusdIcon from "../assets/tokens/pyusd.svg";
 import { SubscriptionPayCycle } from "../constants/enums";
-import { Chain, parseUnits } from "viem";
+import { Chain, encodeFunctionData, parseUnits } from "viem";
 import * as chains from "viem/chains";
+import { signTypedData } from "@wagmi/core";
+import { constants, Contract } from "ethers";
+import { ethers as ethers6 } from "ethers6";
+import {
+  buildDataForUSDC,
+  buildDataForUSDT,
+  compressPermit,
+  cutSelector,
+  decompressPermit,
+} from "./helpers";
+import { wagmiConfig } from "../contexts/SubscriptionProvider";
 
 // === Chain Icons Map ===
 const chainIcons: Record<string, string> = {
   polygon: PolygonIcon,
   bnb: BnbIcon,
-  avalanche: AvalancheIcon,
-  base: BaseIcon,
-  arbitrum: ArbitrumIcon,
-  ethereum: EthereumIcon,
 };
 
 // === Token Icons Map ===
 const tokenIcons: Record<string, string> = {
   usdt: UsdtIcon,
   usdc: UsdcIcon,
-  pyusd: PyusdIcon,
 };
 
 // === Formatting Utilities ===
@@ -348,3 +343,111 @@ export const getReadableErrorMessage = (error: any): string => {
   // Default fallback for unhandled cases
   return "An error occurred during the transaction. Please check the details and try again.";
 };
+
+/**
+ * Builds and returns a permit signature (or its compacted version) for use in a multicall.
+ *
+ * @param owner - An object with at least an `address` field (from useAccount).
+ * @param tokenAddress - A token contract address.
+ * @param tokenAbi - A token contract abi.
+ * @param tokenVersion - A string version (for example, "1").
+ * @param chainId - The chain ID.
+ * @param spender - The address that will be allowed to spend (e.g. the Papaya contract address).
+ * @param amount - The amount as a string.
+ * @param deadline - The deadline as a string (e.g. current timestamp + 100 seconds).
+ * @param compact - Whether to return a compact version of the permit (optional).
+ *
+ * @returns A string representing the permit (either compacted or decompressed).
+ */
+export async function getPermit(
+  owner: { address: string },
+  tokenAddress: string,
+  tokenAbi: any,
+  provider: any,
+  tokenVersion: string,
+  chainId: number,
+  spender: string,
+  amount: string,
+  deadline: string,
+  compact = false
+): Promise<string> {
+  const permitContract = new Contract(tokenAddress, tokenAbi, provider);
+  const nonce = await permitContract.nonces(owner.address);
+  const name = await permitContract.name();
+  const verifyingContract = await permitContract.getAddress();
+
+  let data;
+  if (tokenVersion.toUpperCase() === "USDT") {
+    // For USDT, we ignore the "amount" parameter and set allowed to true.
+    data = buildDataForUSDT(
+      name,
+      tokenVersion,
+      chainId,
+      verifyingContract,
+      owner.address,
+      spender,
+      nonce.toString(),
+      deadline, // using deadline as expiry
+      true
+    );
+  } else {
+    // For USDC (and other standard tokens), use the provided amount and deadline.
+    data = buildDataForUSDC(
+      name,
+      tokenVersion,
+      chainId,
+      verifyingContract,
+      owner.address,
+      spender,
+      amount,
+      nonce.toString(),
+      deadline
+    );
+  }
+
+  interface Domain {
+    chainId?: number | bigint | undefined;
+    name?: string | undefined;
+    salt?: `0x${string}` | undefined;
+    verifyingContract?: `0x${string}` | undefined;
+    version?: string | undefined;
+  }
+
+  const domain: Domain = {
+    chainId: data.domain.chainId,
+    name: data.domain.name,
+    salt: undefined,
+    verifyingContract: data.domain.verifyingContract as `0x${string}`,
+    version: data.domain.version,
+  };
+
+  // Sign the typed data using Wagmi's signTypedData (which does not require a signer object on owner).
+  const signature: string = await signTypedData(wagmiConfig, {
+    domain: domain,
+    types: data.types,
+    primaryType: "Permit",
+    message: data.message,
+  });
+
+  // Split the signature into its v, r, s components using ethers.
+  const { v, r, s } = ethers6.Signature.from(signature);
+
+  // Encode the permit call (using your helper to remove the selector if needed).
+  const permitCall = cutSelector(
+    encodeFunctionData({
+      abi: tokenAbi,
+      functionName: "permit",
+      args: [owner.address, spender, amount, deadline, v, r, s],
+    })
+  );
+
+  // Return either the compacted permit or the decompressed permit.
+  return compact
+    ? compressPermit(permitCall)
+    : decompressPermit(
+        compressPermit(permitCall),
+        constants.AddressZero, // Replace with your ZERO_ADDRESS constant if needed
+        owner.address,
+        spender
+      );
+}
