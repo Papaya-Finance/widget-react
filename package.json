@@ -1,7 +1,7 @@
 {
   "name": "@papaya_fi/widget-react",
   "type": "module",
-  "version": "1.0.8",
+  "version": "1.0.9-rc0",
   "description": "A component-based React Widget SDK for subscription payments",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
@@ -15,7 +15,6 @@
     "dev": "rollup -c --watch"
   },
   "dependencies": {
-    "@1inch/solidity-utils": "^6.4.0",
     "@reown/appkit": "^1.6.5",
     "@reown/appkit-adapter-wagmi": "^1.6.5",
     "@reown/appkit-wallet-button": "^1.6.5",

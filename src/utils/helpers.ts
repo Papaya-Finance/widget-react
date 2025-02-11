@@ -1,22 +1,54 @@
-import { ethers } from "ethers";
+import { constants, ethers } from "ethers";
+
+export enum NonceType {
+  Account, // Nonce for account
+  Selector, // Nonce for selector
+  Unique, // Nonce for unique
+  Invalid, // Invalid Type
+}
+
+/**
+ * Builds traits for {bySig} contract by combining params.
+ * @param params An object containing the following properties:
+ * - `nonceType` The type of nonce to use. Default is `NonceType.Account`.
+ * - `deadline` The deadline for the message. Default is `0`.
+ * - `relayer` The relayer address. Default is the zero address.
+ * - `nonce` The nonce. Default is `0`.
+ * @returns A bigint representing the combined traits.
+ * @throws Error if provided with invalid parameters.
+ */
+export function buildBySigTraits({
+  nonceType = NonceType.Account,
+  deadline = 0,
+  relayer = constants.AddressZero.toString(),
+  nonce = 0,
+} = {}): bigint {
+  if (nonceType > 3) {
+    throw new Error("Wrong nonce type, it should be less than 4");
+  }
+  if (deadline > 0xffffffffff) {
+    throw new Error("Wrong deadline, it should be less than 0xffffffff");
+  }
+  if (relayer.length > 42) {
+    throw new Error("Wrong relayer address, it should be less than 42 symbols");
+  }
+  if (nonce > 0xffffffffffffffffffffffffffffffffn) {
+    throw new Error("Wrong nonce, it should not be more than 128 bits");
+  }
+
+  return (
+    (BigInt(nonceType) << 254n) +
+    (BigInt(deadline) << 208n) +
+    ((BigInt(relayer) & 0xffffffffffffffffffffn) << 128n) +
+    BigInt(nonce)
+  );
+}
 
 /**
  * Define a default deadline constant.
  * (Adjust this value as needed for your application.)
  */
 export const defaultDeadline = 0; // For example, 0 or any default value
-
-/**
- * Define the EIP-712 types for Permit.
- * This example uses a standard Permit (EIP-2612) structure.
- */
-export const Permit = [
-  { name: "owner", type: "address" },
-  { name: "spender", type: "address" },
-  { name: "value", type: "uint256" },
-  { name: "nonce", type: "uint256" },
-  { name: "deadline", type: "uint256" },
-];
 
 /**
  * Removes the function selector (the first 4 bytes) from encoded function data.

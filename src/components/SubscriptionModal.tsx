@@ -221,7 +221,6 @@ export const SubscriptionModal: React.FC<{
             ) : (
               <div className="buttons-section">
                 <Approve
-                  chainId={network.chainId as number}
                   needsApproval={needsApproval}
                   needsDeposit={needsDeposit}
                   approvalAmount={parseUnits(subscriptionDetails.cost, 6)}

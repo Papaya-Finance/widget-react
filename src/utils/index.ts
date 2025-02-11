@@ -108,10 +108,10 @@ export const fetchNetworkFee = async (
 ): Promise<{ gasPrice: string; nativeToken: string } | null> => {
   const network = networks.find((n) => n.chainId === chainId);
   if (!network) {
-    console.warn(`Unsupported chain ID: ${chainId}, defaulting to Ethereum`);
+    console.warn(`Unsupported chain ID: ${chainId}, defaulting to Polygon`);
     return {
       gasPrice: "0",
-      nativeToken: "ETH",
+      nativeToken: "POL",
     };
   }
 
@@ -180,13 +180,10 @@ export const fetchGasCost = async (
     ) {
       const nativeTokenIdMap: Record<number, string> = {
         137: "matic-network",
-        43114: "avalanche-2",
-        8453: "ethereum",
-        42161: "ethereum",
-        1: "ethereum",
+        56: "binancecoin",
       };
 
-      const tokenId = nativeTokenIdMap[chainId] || "ethereum";
+      const tokenId = nativeTokenIdMap[chainId] || "matic-network";
       if (!tokenId) {
         throw new Error(`Token ID not found for chain ID: ${chainId}`);
       }
@@ -208,7 +205,7 @@ export const fetchGasCost = async (
     return { fee, usdValue };
   } catch (error) {
     console.error("Error calculating gas cost:", error);
-    return { fee: "0.000000000000 ETH", usdValue: "($0.00)" };
+    return { fee: "0.000000000000 POL", usdValue: "($0.00)" };
   }
 };
 
@@ -265,7 +262,7 @@ export const calculateSubscriptionRate = (
 export const getChain = (chainId: number): Chain => {
   const chain = Object.values(chains).find((c) => c.id === chainId);
   if (!chain) {
-    console.warn(`Chain with id ${chainId} not found, defaulting to Ethereum`);
+    console.warn(`Chain with id ${chainId} not found, defaulting to Polygon`);
     return chains.mainnet;
   }
   return chain;

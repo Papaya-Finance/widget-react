@@ -8,11 +8,15 @@ import {
   getPermit,
 } from "../../utils";
 import { useAppKitAccount } from "@reown/appkit/react";
-import { buildBySigTraits, NonceType } from "@1inch/solidity-utils";
 import { ethers } from "ethers6";
 import { signTypedData } from "@wagmi/core";
-import { wagmiAdapter, wagmiConfig } from "../../contexts/SubscriptionProvider";
+import {
+  papayaProjectId,
+  wagmiAdapter,
+  wagmiConfig,
+} from "../../contexts/SubscriptionProvider";
 import { getTokenABI } from "../../hook/useSubscriptionModal";
+import { buildBySigTraits, NonceType } from "../../utils/helpers";
 
 interface SubscribeProps {
   chainId: number;
@@ -31,7 +35,7 @@ interface SubscribeProps {
 }
 
 export const Subscribe: React.FC<SubscribeProps> = ({
-  chainId = 1,
+  chainId = 137,
   needsDeposit,
   canSubscribe,
   abi,
@@ -98,7 +102,7 @@ export const Subscribe: React.FC<SubscribeProps> = ({
         const subscribeCallData = encodeFunctionData({
           abi,
           functionName: "subscribe",
-          args: [toAddress, subscriptionRate, 0],
+          args: [toAddress, subscriptionRate, papayaProjectId],
         });
 
         // Encode the permitAndCall call: permitAndCall(tokenPermit, depositCallData)
@@ -170,7 +174,7 @@ export const Subscribe: React.FC<SubscribeProps> = ({
         abi,
         address: papayaAddress,
         functionName: "subscribe",
-        args: [toAddress, subscriptionRate, 0],
+        args: [toAddress, subscriptionRate, papayaProjectId],
       });
     }
   }

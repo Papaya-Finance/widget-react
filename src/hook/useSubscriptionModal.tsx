@@ -5,15 +5,14 @@ import { Abi, Address, encodeFunctionData, parseUnits } from "viem";
 import { networks } from "../constants/networks";
 import { USDT } from "../contracts/evm/USDT";
 import { USDC } from "../contracts/evm/USDC";
-import { PYUSD } from "../contracts/evm/PYUSD";
 import { useEffect, useMemo, useState } from "react";
-import { fetchGasCost, getAssets, getChain } from "../utils";
+import { fetchGasCost, getAssets } from "../utils";
 import {
   CaipNetwork,
   UseAppKitAccountReturn,
   UseAppKitNetworkReturn,
 } from "@reown/appkit";
-import { mainnet } from "viem/chains";
+import { polygon } from "viem/chains";
 import { Papaya } from "../contracts/evm/Papaya";
 import { wagmiConfig } from "../contexts/SubscriptionProvider";
 
@@ -21,18 +20,18 @@ export const useTokenDetails = (
   network: UseAppKitNetworkReturn,
   subscriptionDetails: SubscriptionDetails
 ) => {
-  const defaultNetwork = networks.find((n) => n.chainId === 1);
+  const defaultNetwork = networks.find((n) => n.chainId === 137);
   if (!defaultNetwork || !defaultNetwork.tokens) {
     throw new Error(
-      "Default network (Ethereum) is missing in the configuration."
+      "Default network (Polygon) is missing in the configuration."
     );
   }
 
   const defaultToken = defaultNetwork.tokens.find(
-    (t) => t.name.toLowerCase() === "usdc"
+    (t) => t.name.toLowerCase() === "usdt"
   );
   if (!defaultToken) {
-    throw new Error("Default token (USDC) is missing in the configuration.");
+    throw new Error("Default token (USDT) is missing in the configuration.");
   }
 
   const currentNetwork =
@@ -82,10 +81,8 @@ export const getTokenABI = (tokenName: string) => {
       return USDT;
     case "USDC":
       return USDC;
-    case "PYUSD":
-      return PYUSD;
     default:
-      return USDC;
+      return USDT;
   }
 };
 
@@ -122,36 +119,9 @@ export const useNetworkFee = (
       try {
         setIsLoading(true);
 
-        const chain = getChain(chainId);
-
-        let chainPrefix = "mainnet";
-
-        switch (chainId) {
-          case 1:
-            chainPrefix = "mainnet";
-            break;
-          case 56:
-            chainPrefix = "bsc-mainnet";
-            break;
-          case 137:
-            chainPrefix = "polygon-mainnet";
-            break;
-          case 43114:
-            chainPrefix = "avalanche-mainnet";
-            break;
-          case 8453:
-            chainPrefix = "base-mainnet";
-            break;
-          case 42161:
-            chainPrefix = "arbitrum-mainnet";
-            break;
-          default:
-            break;
-        }
-
         if (!wagmiConfig) {
           console.warn("Wagmi is not properly configured.");
-          setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+          setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
           return;
         }
 
@@ -167,7 +137,7 @@ export const useNetworkFee = (
         if (isMounted) {
           if (!estimatedGas) {
             console.warn("Failed to estimate gas.");
-            setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+            setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
             return;
           }
 
@@ -178,7 +148,7 @@ export const useNetworkFee = (
       } catch (error) {
         console.error("Error fetching network fee:", error);
         if (isMounted) {
-          setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+          setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -212,19 +182,15 @@ export const useAssets = (
   const nativeTokenIdMap: Record<number, string> = {
     137: "polygon",
     56: "bnb",
-    43114: "avalanche",
-    8453: "base",
-    42161: "arbitrum",
-    1: "ethereum",
   };
 
-  const chainName = nativeTokenIdMap[network.chainId as number] || "ethereum";
+  const chainName = nativeTokenIdMap[network.chainId as number] || "polygon";
 
   useEffect(() => {
     const chain = getAssets(chainName, "chain");
     const token = getAssets(subscriptionDetails.token.toLowerCase(), "token");
-    setChainIcon(chain || getAssets("ethereum", "chain"));
-    setTokenIcon(token || getAssets("usdc", "token"));
+    setChainIcon(chain || getAssets("polygon", "chain"));
+    setTokenIcon(token || getAssets("usdt", "token"));
   }, [chainName, subscriptionDetails.token]);
 
   return { chainIcon, tokenIcon };
@@ -237,7 +203,7 @@ export const useSubscriptionInfo = (
 ) => {
   const { tokenDetails } = useTokenDetails(network, subscriptionDetails);
 
-  const abi = getTokenABI(tokenDetails?.name || "USDC");
+  const abi = getTokenABI(tokenDetails?.name || "USDT");
   const papayaAddress = tokenDetails?.papayaAddress || "0x0";
   const tokenAddress = tokenDetails?.ercAddress || "0x0";
 
@@ -294,22 +260,22 @@ export const useSubscriptionModal = (
   subscriptionDetails: SubscriptionDetails
 ) => {
   const defaultCaipNetwork: CaipNetwork = {
-    id: 1,
+    id: 137,
     chainNamespace: "eip155",
-    caipNetworkId: "eip155:1",
-    name: "Ethereum",
+    caipNetworkId: "eip155:137",
+    name: "Polygon",
     nativeCurrency: {
-      name: "Ether",
-      symbol: "ETH",
+      name: "POL",
+      symbol: "POL",
       decimals: 18,
     },
-    rpcUrls: mainnet.rpcUrls,
+    rpcUrls: polygon.rpcUrls,
   };
 
   const defaultNetwork: UseAppKitNetworkReturn = {
     caipNetwork: defaultCaipNetwork,
-    chainId: 1,
-    caipNetworkId: "eip155:1",
+    chainId: 137,
+    caipNetworkId: "eip155:137",
     switchNetwork: () => {},
   };
 
