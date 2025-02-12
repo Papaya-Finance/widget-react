@@ -9,11 +9,11 @@ import PolygonIcon from "../assets/chains/polygon.svg";
 import UsdtIcon from "../assets/tokens/usdt.svg";
 import UsdcIcon from "../assets/tokens/usdc.svg";
 import { SubscriptionPayCycle } from "../constants/enums";
-import { Chain, encodeFunctionData, parseUnits } from "viem";
+import { Chain, parseUnits } from "viem";
 import * as chains from "viem/chains";
 import { signTypedData } from "@wagmi/core";
 import { constants, Contract } from "ethers";
-import { ethers as ethers6 } from "ethers6";
+import { Signature } from "ethers6";
 import {
   buildDataForUSDC,
   buildDataForUSDT,
@@ -342,108 +342,122 @@ export const getReadableErrorMessage = (error: any): string => {
 };
 
 /**
- * Builds and returns a permit signature (or its compacted version) for use in a multicall.
+ * Generates a permit signature (or its compacted version) for USDC or USDT.
  *
- * @param owner - An object with at least an `address` field (from useAccount).
- * @param tokenAddress - A token contract address.
- * @param tokenAbi - A token contract abi.
- * @param tokenVersion - A string version (for example, "1").
- * @param chainId - The chain ID.
- * @param spender - The address that will be allowed to spend (e.g. the Papaya contract address).
- * @param amount - The amount as a string.
- * @param deadline - The deadline as a string (e.g. current timestamp + 100 seconds).
- * @param compact - Whether to return a compact version of the permit (optional).
+ * @param owner - An object with at least an `address` field (e.g. from useAccount).
+ * @param permitContract - An ethers.Contract instance for the token’s permit functionality.
+ * @param tokenType - A string identifying the token (e.g. "USDC" or "USDT").
+ * @param chainId - The chain ID (e.g. 137 for Polygon, 56 for BNB).
+ * @param spender - The address that is allowed to spend (e.g. your Papaya contract).
+ * @param amount - The amount as a string (used by USDC; ignored for USDT).
+ * @param deadline - A deadline timestamp as a string (for USDC: deadline, for USDT: expiry).
+ * @param compact - Whether to return a compacted version of the permit (optional).
  *
- * @returns A string representing the permit (either compacted or decompressed).
+ * @returns A promise that resolves to a string representing the encoded permit call (with the function selector removed).
  */
 export async function getPermit(
   owner: { address: string },
-  tokenAddress: string,
-  tokenAbi: any,
-  provider: any,
-  tokenVersion: string,
+  permitContract: Contract,
+  tokenType: string, // Expected to be "USDC" or "USDT" (case‑insensitive)
   chainId: number,
   spender: string,
   amount: string,
   deadline: string,
   compact = false
 ): Promise<string> {
-  const permitContract = new Contract(tokenAddress, tokenAbi, provider);
-  const nonce = await permitContract.nonces(owner.address);
+  // Retrieve the token name and contract address.
   const name = await permitContract.name();
-  const verifyingContract = await permitContract.getAddress();
+  const verifyingContract = permitContract.address;
 
-  let data;
-  if (tokenVersion.toUpperCase() === "USDT") {
-    // For USDT, we ignore the "amount" parameter and set allowed to true.
+  let nonce: any;
+  let data: any;
+
+  if (tokenType.toUpperCase() === "USDT") {
+    // For USDT, try to use getNonce (or default to 0 if not available).
+    try {
+      nonce = await permitContract.getNonce(owner.address);
+    } catch (error) {
+      nonce = 0;
+    }
+    const nonceStr = nonce.toString();
     data = buildDataForUSDT(
       name,
-      tokenVersion,
+      tokenType,
       chainId,
       verifyingContract,
-      owner.address,
+      owner.address, // "holder"
       spender,
-      nonce.toString(),
-      deadline, // using deadline as expiry
-      true
+      nonceStr,
+      deadline, // used as expiry
+      true // allowed
     );
   } else {
-    // For USDC (and other standard tokens), use the provided amount and deadline.
+    // For USDC (and similar EIP‑2612 tokens), use nonces.
+    try {
+      nonce = await permitContract.nonces(owner.address);
+    } catch (error) {
+      nonce = 0;
+    }
+    const nonceStr = nonce.toString();
     data = buildDataForUSDC(
       name,
-      tokenVersion,
+      tokenType,
       chainId,
       verifyingContract,
       owner.address,
       spender,
       amount,
-      nonce.toString(),
+      nonceStr,
       deadline
     );
   }
 
-  interface Domain {
-    chainId?: number | bigint | undefined;
-    name?: string | undefined;
-    salt?: `0x${string}` | undefined;
-    verifyingContract?: `0x${string}` | undefined;
-    version?: string | undefined;
-  }
-
-  const domain: Domain = {
-    chainId: data.domain.chainId,
-    name: data.domain.name,
-    salt: undefined,
-    verifyingContract: data.domain.verifyingContract as `0x${string}`,
-    version: data.domain.version,
-  };
-
-  // Sign the typed data using Wagmi's signTypedData (which does not require a signer object on owner).
+  // Sign the typed data using Wagmi's signTypedData.
   const signature: string = await signTypedData(wagmiConfig, {
-    domain: domain,
+    domain: data.domain,
     types: data.types,
-    primaryType: "Permit",
+    primaryType: "Permit", // Both schemas use "Permit" as the primary type.
     message: data.message,
   });
 
-  // Split the signature into its v, r, s components using ethers.
-  const { v, r, s } = ethers6.Signature.from(signature);
+  // Split the signature into its v, r, and s components.
+  const { v, r, s } = Signature.from(signature);
 
-  // Encode the permit call (using your helper to remove the selector if needed).
-  const permitCall = cutSelector(
-    encodeFunctionData({
-      abi: tokenAbi,
-      functionName: "permit",
-      args: [owner.address, spender, amount, deadline, v, r, s],
-    })
-  );
+  let permitCall: string;
+  if (tokenType.toUpperCase() === "USDT") {
+    // USDT permit: permit(holder, spender, nonce, expiry, allowed, v, r, s)
+    permitCall = permitContract.interface.encodeFunctionData("permit", [
+      owner.address,
+      spender,
+      nonce.toString(),
+      deadline, // expiry
+      true,
+      v,
+      r,
+      s,
+    ]);
+  } else {
+    // USDC permit: permit(owner, spender, value, deadline, v, r, s)
+    permitCall = permitContract.interface.encodeFunctionData("permit", [
+      owner.address,
+      spender,
+      amount,
+      deadline,
+      v,
+      r,
+      s,
+    ]);
+  }
 
-  // Return either the compacted permit or the decompressed permit.
+  // Remove the 4-byte function selector if required.
+  const permitCallNoSelector = cutSelector(permitCall);
+
+  // Optionally compress/decompress the result.
   return compact
-    ? compressPermit(permitCall)
+    ? compressPermit(permitCallNoSelector)
     : decompressPermit(
-        compressPermit(permitCall),
-        constants.AddressZero, // Replace with your ZERO_ADDRESS constant if needed
+        compressPermit(permitCallNoSelector),
+        constants.AddressZero, // Replace with your ZERO_ADDRESS constant if available.
         owner.address,
         spender
       );

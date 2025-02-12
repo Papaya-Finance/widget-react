@@ -239,9 +239,12 @@ export const useSubscriptionInfo = (
   const needsApproval = allowance == null || allowance < depositAmount;
 
   const canSubscribe =
-    !needsDeposit &&
-    papayaBalance != null &&
-    papayaBalance >= parseUnits(subscriptionDetails.cost, 18);
+    (!needsDeposit &&
+      papayaBalance != null &&
+      papayaBalance >= parseUnits(subscriptionDetails.cost, 18)) ||
+    (needsDeposit &&
+      tokenBalance != null &&
+      tokenBalance >= parseUnits(subscriptionDetails.cost, 6));
 
   return {
     papayaBalance,
@@ -315,7 +318,7 @@ export const useSubscriptionModal = (
       tokenDetails,
     };
   }
-
+  
   return {
     chainIcon,
     tokenIcon,

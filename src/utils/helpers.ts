@@ -61,6 +61,9 @@ export function cutSelector(data: string): string {
   return hexPrefix + data.substring(hexPrefix.length + 8);
 }
 
+/**
+ * Builds the EIP‑712 data for USDC (standard EIP‑2612 permit).
+ */
 export function buildDataForUSDC(
   name: string,
   tokenVersion: string,
@@ -74,13 +77,13 @@ export function buildDataForUSDC(
 ) {
   return {
     domain: {
-      name, // token name (e.g. "USD Coin")
-      version: tokenVersion, // e.g. "1"
+      name, // e.g. "USD Coin"
+      version: tokenVersion, // e.g. "USDC"
       chainId,
       verifyingContract,
     },
     types: {
-      // Standard EIP‑2612 permit
+      // Standard EIP‑2612 Permit
       Permit: [
         { name: "owner", type: "address" },
         { name: "spender", type: "address" },
@@ -104,12 +107,12 @@ export function buildDataForUSDC(
  *
  * USDT’s permit expects:
  *   permit(holder, spender, nonce, expiry, allowed, v, r, s)
- * Here, we build a message with:
+ * Here we build a message with:
  *   - holder: owner's address
  *   - spender: spender’s address
  *   - nonce: current nonce
  *   - expiry: deadline (used as expiry)
- *   - allowed: a boolean (set to true)
+ *   - allowed: true
  */
 export function buildDataForUSDT(
   name: string,
@@ -124,13 +127,13 @@ export function buildDataForUSDT(
 ) {
   return {
     domain: {
-      name,
-      version: tokenVersion,
+      name, // e.g. "Tether USD"
+      version: tokenVersion, // e.g. "USDT"
       chainId,
       verifyingContract,
     },
     types: {
-      // USDT permit schema
+      // USDT Permit schema
       Permit: [
         { name: "holder", type: "address" },
         { name: "spender", type: "address" },
