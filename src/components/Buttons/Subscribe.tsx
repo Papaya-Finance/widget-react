@@ -6,10 +6,7 @@ import {
   calculateSubscriptionRate,
   getReadableErrorMessage,
 } from "../../utils";
-import { useAppKitAccount } from "@reown/appkit/react";
 import { projectId } from "../../contexts/SubscriptionProvider";
-import { providers } from "ethers";
-import { bsc, polygon } from "viem/chains";
 
 interface SubscribeProps {
   chainId: number;
@@ -22,6 +19,7 @@ interface SubscribeProps {
   subscriptionCycle: SubscriptionPayCycle;
   papayaAddress: Address;
   depositAmount: bigint;
+  onStart?: () => void;
   onSuccess?: () => void;
   onError?: (title: string, description: string) => void;
 }
@@ -37,6 +35,7 @@ export const Subscribe: React.FC<SubscribeProps> = ({
   subscriptionCycle,
   papayaAddress,
   depositAmount,
+  onStart = null,
   onSuccess = null,
   onError = null,
 }) => {
@@ -52,6 +51,11 @@ export const Subscribe: React.FC<SubscribeProps> = ({
 
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (onStart) {
+      onStart();
+    }
+
     setIsProcessing(true);
 
     const subscriptionRate = calculateSubscriptionRate(

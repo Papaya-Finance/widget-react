@@ -59,7 +59,8 @@ export const useContractData = (
   abi: any,
   functionName: string,
   args: any[],
-  refetchInterval: number = 1000
+  refetchInterval: number = 1000,
+  pausePolling: boolean = false
 ) => {
   const { data } = useReadContract({
     address: contractAddress,
@@ -68,7 +69,7 @@ export const useContractData = (
     args,
     query: {
       enabled: !!contractAddress,
-      refetchInterval,
+      refetchInterval: pausePolling ? 0 : refetchInterval,
       refetchIntervalInBackground: true,
     },
   });
@@ -199,7 +200,8 @@ export const useAssets = (
 export const useSubscriptionInfo = (
   network: UseAppKitNetworkReturn,
   account: UseAppKitAccountReturn,
-  subscriptionDetails: SubscriptionDetails
+  subscriptionDetails: SubscriptionDetails,
+  pausePolling: boolean = false
 ) => {
   const { tokenDetails } = useTokenDetails(network, subscriptionDetails);
 
@@ -212,7 +214,9 @@ export const useSubscriptionInfo = (
     papayaAddress as Address,
     Papaya,
     "balanceOf",
-    [account.address as Address]
+    [account.address as Address],
+    1000,
+    pausePolling
   );
 
   // Allowance from token contract (in token decimals, e.g., 6 for USDC)
@@ -220,7 +224,9 @@ export const useSubscriptionInfo = (
     tokenAddress as Address,
     tokenAbi,
     "allowance",
-    [account.address as Address, papayaAddress as Address]
+    [account.address as Address, papayaAddress as Address],
+    1000,
+    pausePolling
   );
 
   // Token balance is in token units (e.g., 6 decimals for USDC)
@@ -228,7 +234,9 @@ export const useSubscriptionInfo = (
     tokenAddress as Address,
     tokenAbi,
     "balanceOf",
-    [account.address as Address]
+    [account.address as Address],
+    1000,
+    pausePolling
   );
 
   // Convert the subscription cost (provided in human-readable form) to token units (6 decimals)
@@ -295,7 +303,8 @@ export const useSubscriptionInfo = (
 export const useSubscriptionModal = (
   network: UseAppKitNetworkReturn | null,
   account: UseAppKitAccountReturn,
-  subscriptionDetails: SubscriptionDetails
+  subscriptionDetails: SubscriptionDetails,
+  pausePolling: boolean
 ) => {
   const defaultCaipNetwork: CaipNetwork = {
     id: 137,
@@ -340,7 +349,8 @@ export const useSubscriptionModal = (
   const subscriptionInfo = useSubscriptionInfo(
     activeNetwork,
     account,
-    subscriptionDetails
+    subscriptionDetails,
+    pausePolling
   );
 
   if (isUnsupportedNetwork || isUnsupportedToken) {
