@@ -121,6 +121,12 @@
   height: 24px;
 }
 
+.token-icon-small {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+}
+
 .detail-label {
   font-family: "Public Sans", sans-serif;
   font-size: 12px;
@@ -136,6 +142,11 @@
   margin: 0;
 }
 
+.detail-value.small {
+  font-size: 10px;
+  margin-top: 4px;
+}
+
 .detail-usd-value {
   font-family: "Roboto Mono", monospace;
   font-size: 12px;
@@ -148,6 +159,17 @@
   font-size: 12px;
   color: #919eab;
   margin: 0;
+}
+
+.notice-text {
+  font-family: "Public Sans", sans-serif;
+  font-size: 10px;
+  margin: 0;
+  line-height: 12px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
 }
 
 .buttons-section {
@@ -353,7 +375,6 @@
 .footer-logo {
   width: 58px;
   height: 12px;
-  margin-top: 4px;
 }
 
 .underline {

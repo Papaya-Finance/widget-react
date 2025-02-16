@@ -6,7 +6,7 @@ import { networks } from "../constants/networks";
 import { USDT } from "../contracts/evm/USDT";
 import { USDC } from "../contracts/evm/USDC";
 import { useEffect, useMemo, useState } from "react";
-import { fetchGasCost, getAssets } from "../utils";
+import { calculateSubscriptionRate, fetchGasCost, getAssets } from "../utils";
 import {
   CaipNetwork,
   UseAppKitAccountReturn,
@@ -203,55 +203,90 @@ export const useSubscriptionInfo = (
 ) => {
   const { tokenDetails } = useTokenDetails(network, subscriptionDetails);
 
-  const abi = getTokenABI(tokenDetails?.name || "USDT");
+  const tokenAbi = getTokenABI(tokenDetails?.name || "USDT");
   const papayaAddress = tokenDetails?.papayaAddress || "0x0";
   const tokenAddress = tokenDetails?.ercAddress || "0x0";
 
-  const papayaBalance = useContractData(
+  // Papaya balance is in 18 decimals.
+  const papayaBalance18 = useContractData(
     papayaAddress as Address,
     Papaya,
     "balanceOf",
     [account.address as Address]
   );
 
-  const allowance = useContractData(tokenAddress as Address, abi, "allowance", [
-    account.address as Address,
-    papayaAddress as Address,
-  ]);
-
-  const tokenBalance = useContractData(
+  // Allowance from token contract (in token decimals, e.g., 6 for USDC)
+  const tokenAllowance = useContractData(
     tokenAddress as Address,
-    abi,
+    tokenAbi,
+    "allowance",
+    [account.address as Address, papayaAddress as Address]
+  );
+
+  // Token balance is in token units (e.g., 6 decimals for USDC)
+  const userTokenBalance = useContractData(
+    tokenAddress as Address,
+    tokenAbi,
     "balanceOf",
     [account.address as Address]
   );
 
+  // Convert the subscription cost (provided in human-readable form) to token units (6 decimals)
+  const subscriptionCostTokenUnits = parseUnits(subscriptionDetails.cost, 6); // e.g. "0.99" becomes 990000 (if 6 decimals)
+  // Convert that cost to 18 decimals for internal comparison with Papaya balance.
+  const subscriptionCost18 = subscriptionCostTokenUnits * BigInt(1e12);
+
+  // Compute the subscription rate in 18 decimals per second using your helper.
+  // For example, if payCycle is "monthly", subscriptionRate18 = subscriptionCost18 / seconds_in_month.
+  const subscriptionRate18 = calculateSubscriptionRate(
+    subscriptionCost18,
+    subscriptionDetails.payCycle
+  );
+
+  // Define the safe liquidation period (2 days in seconds).
+  const SAFE_LIQUIDATION_PERIOD_SECONDS = BigInt(172800);
+  // Compute the safety buffer (in 18 decimals) covering the safe liquidation period.
+  const safetyBuffer18 = subscriptionRate18 * SAFE_LIQUIDATION_PERIOD_SECONDS;
+  // The total required deposit in 18 decimals is the subscription cost plus the safety buffer.
+  const requiredDeposit18 = subscriptionCost18 + safetyBuffer18;
+  // Convert the required deposit into token units (6 decimals).
+  const requiredDepositTokenUnits = requiredDeposit18 / BigInt(1e12);
+
+  // Determine if a deposit is needed:
+  // Papaya balance is in 18 decimals; if it's less than requiredDeposit18, deposit is needed.
   const needsDeposit =
-    papayaBalance == null ||
-    papayaBalance < parseUnits(subscriptionDetails.cost, 18);
+    papayaBalance18 == null || papayaBalance18 < requiredDeposit18;
 
-  const depositAmount =
-    papayaBalance != null && papayaBalance > BigInt(0)
-      ? parseUnits(subscriptionDetails.cost, 6) -
-        papayaBalance / parseUnits("1", 12)
-      : parseUnits(subscriptionDetails.cost, 6);
+  // Calculate how much deposit is missing in token units (6 decimals).
+  // Convert existing Papaya balance from 18 decimals to token units:
+  const currentDepositTokenUnits =
+    papayaBalance18 != null ? papayaBalance18 / parseUnits("1", 12) : BigInt(0);
+  const depositShortfallTokenUnits =
+    currentDepositTokenUnits >= requiredDepositTokenUnits
+      ? BigInt(0)
+      : requiredDepositTokenUnits - currentDepositTokenUnits;
 
-  const needsApproval = allowance == null || allowance < depositAmount;
+  // needsApproval is true if token allowance is less than the required deposit (in token units).
+  const needsApproval =
+    tokenAllowance == null || tokenAllowance < depositShortfallTokenUnits;
 
+  // Determine if the user can subscribe:
+  // If no deposit is needed: Papaya balance (18 decimals) must meet the required deposit.
+  // If deposit is needed: the user's token balance (6 decimals) must cover the shortfall.
   const canSubscribe =
     (!needsDeposit &&
-      papayaBalance != null &&
-      papayaBalance >= parseUnits(subscriptionDetails.cost, 18)) ||
+      papayaBalance18 != null &&
+      papayaBalance18 >= requiredDeposit18) ||
     (needsDeposit &&
-      tokenBalance != null &&
-      tokenBalance >= parseUnits(subscriptionDetails.cost, 6));
+      userTokenBalance != null &&
+      userTokenBalance >= depositShortfallTokenUnits);
 
   return {
-    papayaBalance,
-    allowance,
-    tokenBalance,
+    papayaBalance: papayaBalance18,
+    allowance: tokenAllowance,
+    tokenBalance: userTokenBalance,
     needsDeposit,
-    depositAmount,
+    depositAmount: depositShortfallTokenUnits, // in token units (6 decimals)
     needsApproval,
     canSubscribe,
   };
@@ -318,7 +353,7 @@ export const useSubscriptionModal = (
       tokenDetails,
     };
   }
-  
+
   return {
     chainIcon,
     tokenIcon,

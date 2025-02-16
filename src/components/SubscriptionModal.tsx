@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
-import { Address, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import isEqual from "lodash.isequal";
 import Skeleton from "react-loading-skeleton";
 import LogoIcon from "../assets/logo.svg";
@@ -213,6 +213,23 @@ export const SubscriptionModal: React.FC<{
                 </p>
               </div>
             </div>
+            {!isFeeLoading && needsDeposit && (
+              <div className="notice-text">
+                <span>You need to deposit approximately</span>
+                <span className="detail-value small">
+                  {formatUnits(depositAmount, 6)}
+                </span>
+                <img
+                  src={tokenIcon}
+                  alt="Token Icon"
+                  className="token-icon-small"
+                />
+                <span>to cover the subscription</span>
+                <span>cost plus a safety</span>
+                <span>buffer.</span>
+              </div>
+            )}
+
             {isFeeLoading ? (
               <div className="buttons-section">
                 <Skeleton className="buttons-loader" />
@@ -223,7 +240,7 @@ export const SubscriptionModal: React.FC<{
                 <Approve
                   needsApproval={needsApproval}
                   needsDeposit={needsDeposit}
-                  approvalAmount={parseUnits(subscriptionDetails.cost, 6)}
+                  approvalAmount={depositAmount}
                   abi={getTokenABI(tokenDetails.name)}
                   tokenContractAddress={tokenDetails.ercAddress as Address}
                   papayaAddress={tokenDetails.papayaAddress as Address}
@@ -240,20 +257,17 @@ export const SubscriptionModal: React.FC<{
                 />
                 <Subscribe
                   chainId={network.chainId as number}
+                  needsApproval={needsApproval}
                   needsDeposit={needsDeposit}
                   canSubscribe={canSubscribe}
                   abi={Papaya}
-                  tokenName={tokenDetails.name}
-                  tokenAddress={tokenDetails.ercAddress as Address}
                   toAddress={subscriptionDetails.toAddress as Address}
                   subscriptionCost={parseUnits(subscriptionDetails.cost, 18)}
                   subscriptionCycle={subscriptionDetails.payCycle}
                   papayaAddress={tokenDetails.papayaAddress as Address}
                   depositAmount={depositAmount}
                   onSuccess={() => {
-                    setIsSubscriptionSuccessful(() => {
-                      return true;
-                    });
+                    setIsSubscriptionSuccessful(true);
                     setShowError(false);
                     setErrorTitle("");
                     setErrorDescription("");
