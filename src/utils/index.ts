@@ -3,41 +3,36 @@
 import { networks } from "../constants/networks";
 import axios from "axios";
 // Chain Icons
-import EthereumIcon from "../assets/chains/ethereum.svg";
 import BnbIcon from "../assets/chains/bnb.svg";
 import PolygonIcon from "../assets/chains/polygon.svg";
-import AvalancheIcon from "../assets/chains/avalanche.svg";
-import ArbitrumIcon from "../assets/chains/arbitrum.svg";
-import BaseIcon from "../assets/chains/base.svg";
-// Not used for now
-// import ScrollIcon from "../assets/chains/scroll.svg";
-// import ZkSyncIcon from "../assets/chains/zksync.svg";
-// import SeiIcon from "../assets/chains/sei.svg";
-// import SolanaIcon from "../assets/chains/solana.svg";
-// import TonIcon from "../assets/chains/ton.svg";
 // Token Icons
 import UsdtIcon from "../assets/tokens/usdt.svg";
 import UsdcIcon from "../assets/tokens/usdc.svg";
-import PyusdIcon from "../assets/tokens/pyusd.svg";
 import { SubscriptionPayCycle } from "../constants/enums";
 import { Chain, parseUnits } from "viem";
 import * as chains from "viem/chains";
+import { signTypedData } from "@wagmi/core";
+import { constants, Contract } from "ethers";
+import { Signature } from "ethers6";
+import {
+  buildDataForUSDC,
+  buildDataForUSDT,
+  compressPermit,
+  cutSelector,
+  decompressPermit,
+} from "./helpers";
+import { wagmiConfig } from "../contexts/SubscriptionProvider";
 
 // === Chain Icons Map ===
 const chainIcons: Record<string, string> = {
   polygon: PolygonIcon,
   bnb: BnbIcon,
-  avalanche: AvalancheIcon,
-  base: BaseIcon,
-  arbitrum: ArbitrumIcon,
-  ethereum: EthereumIcon,
 };
 
 // === Token Icons Map ===
 const tokenIcons: Record<string, string> = {
   usdt: UsdtIcon,
   usdc: UsdcIcon,
-  pyusd: PyusdIcon,
 };
 
 // === Formatting Utilities ===
@@ -113,10 +108,10 @@ export const fetchNetworkFee = async (
 ): Promise<{ gasPrice: string; nativeToken: string } | null> => {
   const network = networks.find((n) => n.chainId === chainId);
   if (!network) {
-    console.warn(`Unsupported chain ID: ${chainId}, defaulting to Ethereum`);
+    console.warn(`Unsupported chain ID: ${chainId}, defaulting to Polygon`);
     return {
       gasPrice: "0",
-      nativeToken: "ETH",
+      nativeToken: "POL",
     };
   }
 
@@ -185,13 +180,10 @@ export const fetchGasCost = async (
     ) {
       const nativeTokenIdMap: Record<number, string> = {
         137: "matic-network",
-        43114: "avalanche-2",
-        8453: "ethereum",
-        42161: "ethereum",
-        1: "ethereum",
+        56: "binancecoin",
       };
 
-      const tokenId = nativeTokenIdMap[chainId] || "ethereum";
+      const tokenId = nativeTokenIdMap[chainId] || "matic-network";
       if (!tokenId) {
         throw new Error(`Token ID not found for chain ID: ${chainId}`);
       }
@@ -213,7 +205,7 @@ export const fetchGasCost = async (
     return { fee, usdValue };
   } catch (error) {
     console.error("Error calculating gas cost:", error);
-    return { fee: "0.000000000000 ETH", usdValue: "($0.00)" };
+    return { fee: "0.000000000000 POL", usdValue: "($0.00)" };
   }
 };
 
@@ -270,7 +262,7 @@ export const calculateSubscriptionRate = (
 export const getChain = (chainId: number): Chain => {
   const chain = Object.values(chains).find((c) => c.id === chainId);
   if (!chain) {
-    console.warn(`Chain with id ${chainId} not found, defaulting to Ethereum`);
+    console.warn(`Chain with id ${chainId} not found, defaulting to Polygon`);
     return chains.mainnet;
   }
   return chain;
@@ -348,3 +340,125 @@ export const getReadableErrorMessage = (error: any): string => {
   // Default fallback for unhandled cases
   return "An error occurred during the transaction. Please check the details and try again.";
 };
+
+/**
+ * Generates a permit signature (or its compacted version) for USDC or USDT.
+ *
+ * @param owner - An object with at least an `address` field (e.g. from useAccount).
+ * @param permitContract - An ethers.Contract instance for the token’s permit functionality.
+ * @param tokenType - A string identifying the token (e.g. "USDC" or "USDT").
+ * @param chainId - The chain ID (e.g. 137 for Polygon, 56 for BNB).
+ * @param spender - The address that is allowed to spend (e.g. your Papaya contract).
+ * @param amount - The amount as a string (used by USDC; ignored for USDT).
+ * @param deadline - A deadline timestamp as a string (for USDC: deadline, for USDT: expiry).
+ * @param compact - Whether to return a compacted version of the permit (optional).
+ *
+ * @returns A promise that resolves to a string representing the encoded permit call (with the function selector removed).
+ */
+export async function getPermit(
+  owner: { address: string },
+  permitContract: Contract,
+  tokenType: string, // Expected to be "USDC" or "USDT" (case‑insensitive)
+  chainId: number,
+  spender: string,
+  amount: string,
+  deadline: string,
+  compact = false
+): Promise<string> {
+  // Retrieve the token name and contract address.
+  const name = await permitContract.name();
+  const verifyingContract = permitContract.address;
+
+  let nonce: any;
+  let data: any;
+
+  if (tokenType.toUpperCase() === "USDT") {
+    // For USDT, try to use getNonce (or default to 0 if not available).
+    try {
+      nonce = await permitContract.getNonce(owner.address);
+    } catch (error) {
+      nonce = 0;
+    }
+    const nonceStr = nonce.toString();
+    data = buildDataForUSDT(
+      name,
+      tokenType,
+      chainId,
+      verifyingContract,
+      owner.address, // "holder"
+      spender,
+      nonceStr,
+      deadline, // used as expiry
+      true // allowed
+    );
+  } else {
+    // For USDC (and similar EIP‑2612 tokens), use nonces.
+    try {
+      nonce = await permitContract.nonces(owner.address);
+    } catch (error) {
+      nonce = 0;
+    }
+    const nonceStr = nonce.toString();
+    data = buildDataForUSDC(
+      name,
+      tokenType,
+      chainId,
+      verifyingContract,
+      owner.address,
+      spender,
+      amount,
+      nonceStr,
+      deadline
+    );
+  }
+
+  // Sign the typed data using Wagmi's signTypedData.
+  const signature: string = await signTypedData(wagmiConfig, {
+    domain: data.domain,
+    types: data.types,
+    primaryType: "Permit", // Both schemas use "Permit" as the primary type.
+    message: data.message,
+  });
+
+  // Split the signature into its v, r, and s components.
+  const { v, r, s } = Signature.from(signature);
+
+  let permitCall: string;
+  if (tokenType.toUpperCase() === "USDT") {
+    // USDT permit: permit(holder, spender, nonce, expiry, allowed, v, r, s)
+    permitCall = permitContract.interface.encodeFunctionData("permit", [
+      owner.address,
+      spender,
+      nonce.toString(),
+      deadline, // expiry
+      true,
+      v,
+      r,
+      s,
+    ]);
+  } else {
+    // USDC permit: permit(owner, spender, value, deadline, v, r, s)
+    permitCall = permitContract.interface.encodeFunctionData("permit", [
+      owner.address,
+      spender,
+      amount,
+      deadline,
+      v,
+      r,
+      s,
+    ]);
+  }
+
+  // Remove the 4-byte function selector if required.
+  const permitCallNoSelector = cutSelector(permitCall);
+
+  // Optionally compress/decompress the result.
+  return compact
+    ? compressPermit(permitCallNoSelector)
+    : decompressPermit(
+        compressPermit(permitCallNoSelector),
+        constants.AddressZero, // Replace with your ZERO_ADDRESS constant if available.
+        owner.address,
+        spender
+      );
+}
