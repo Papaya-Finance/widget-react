@@ -5,7 +5,6 @@ import { Abi, Address } from "viem";
 import { getReadableErrorMessage } from "../../utils";
 
 interface ApproveProps {
-  chainId: number;
   needsApproval: boolean;
   needsDeposit: boolean;
   approvalAmount: bigint;
@@ -17,7 +16,6 @@ interface ApproveProps {
 }
 
 export const Approve: React.FC<ApproveProps> = ({
-  chainId,
   needsApproval,
   needsDeposit,
   approvalAmount,
@@ -40,7 +38,6 @@ export const Approve: React.FC<ApproveProps> = ({
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
 
-    // Only allow submission if needsDeposit is true
     if (!needsDeposit) return;
 
     setIsProcessing(true);
@@ -74,11 +71,6 @@ export const Approve: React.FC<ApproveProps> = ({
     }
   }, [isError, isReceiptError, error]);
 
-  // Disable the button if:
-  // - The approval is already confirmed,
-  // - Approval is not needed,
-  // - Deposit is not needed,
-  // - Or if the transaction is processing or pending.
   const isButtonDisabled =
     isConfirmed || !needsApproval || !needsDeposit || isProcessing || isPending;
 
@@ -97,8 +89,6 @@ export const Approve: React.FC<ApproveProps> = ({
         ) : (
           <>
             <p className="button-text">Approve</p>
-            {/* Show green tick if approval is confirmed, approval is not needed,
-                or deposit is not needed */}
             {(isConfirmed || !needsApproval || !needsDeposit) && (
               <img
                 src={GreenTickIcon}

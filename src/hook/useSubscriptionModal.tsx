@@ -5,15 +5,14 @@ import { Abi, Address, encodeFunctionData, parseUnits } from "viem";
 import { networks } from "../constants/networks";
 import { USDT } from "../contracts/evm/USDT";
 import { USDC } from "../contracts/evm/USDC";
-import { PYUSD } from "../contracts/evm/PYUSD";
 import { useEffect, useMemo, useState } from "react";
-import { fetchGasCost, getAssets, getChain } from "../utils";
+import { calculateSubscriptionRate, fetchGasCost, getAssets } from "../utils";
 import {
   CaipNetwork,
   UseAppKitAccountReturn,
   UseAppKitNetworkReturn,
 } from "@reown/appkit";
-import { mainnet } from "viem/chains";
+import { polygon } from "viem/chains";
 import { Papaya } from "../contracts/evm/Papaya";
 import { wagmiConfig } from "../contexts/SubscriptionProvider";
 
@@ -21,18 +20,18 @@ export const useTokenDetails = (
   network: UseAppKitNetworkReturn,
   subscriptionDetails: SubscriptionDetails
 ) => {
-  const defaultNetwork = networks.find((n) => n.chainId === 1);
-  if (!defaultNetwork) {
+  const defaultNetwork = networks.find((n) => n.chainId === 137);
+  if (!defaultNetwork || !defaultNetwork.tokens) {
     throw new Error(
-      "Default network (Ethereum) is missing in the configuration."
+      "Default network (Polygon) is missing in the configuration."
     );
   }
 
   const defaultToken = defaultNetwork.tokens.find(
-    (t) => t.name.toLowerCase() === "usdc"
+    (t) => t.name.toLowerCase() === "usdt"
   );
   if (!defaultToken) {
-    throw new Error("Default token (USDC) is missing in the configuration.");
+    throw new Error("Default token (USDT) is missing in the configuration.");
   }
 
   const currentNetwork =
@@ -60,7 +59,8 @@ export const useContractData = (
   abi: any,
   functionName: string,
   args: any[],
-  refetchInterval: number = 1000
+  refetchInterval: number = 1000,
+  pausePolling: boolean = false
 ) => {
   const { data } = useReadContract({
     address: contractAddress,
@@ -69,7 +69,7 @@ export const useContractData = (
     args,
     query: {
       enabled: !!contractAddress,
-      refetchInterval,
+      refetchInterval: pausePolling ? 0 : refetchInterval,
       refetchIntervalInBackground: true,
     },
   });
@@ -82,10 +82,8 @@ export const getTokenABI = (tokenName: string) => {
       return USDT;
     case "USDC":
       return USDC;
-    case "PYUSD":
-      return PYUSD;
     default:
-      return USDC;
+      return USDT;
   }
 };
 
@@ -122,36 +120,9 @@ export const useNetworkFee = (
       try {
         setIsLoading(true);
 
-        const chain = getChain(chainId);
-
-        let chainPrefix = "mainnet";
-
-        switch (chainId) {
-          case 1:
-            chainPrefix = "mainnet";
-            break;
-          case 56:
-            chainPrefix = "bsc-mainnet";
-            break;
-          case 137:
-            chainPrefix = "polygon-mainnet";
-            break;
-          case 43114:
-            chainPrefix = "avalanche-mainnet";
-            break;
-          case 8453:
-            chainPrefix = "base-mainnet";
-            break;
-          case 42161:
-            chainPrefix = "arbitrum-mainnet";
-            break;
-          default:
-            break;
-        }
-
         if (!wagmiConfig) {
           console.warn("Wagmi is not properly configured.");
-          setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+          setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
           return;
         }
 
@@ -167,7 +138,7 @@ export const useNetworkFee = (
         if (isMounted) {
           if (!estimatedGas) {
             console.warn("Failed to estimate gas.");
-            setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+            setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
             return;
           }
 
@@ -178,7 +149,7 @@ export const useNetworkFee = (
       } catch (error) {
         console.error("Error fetching network fee:", error);
         if (isMounted) {
-          setNetworkFee({ fee: "0.000000000000 ETH", usdValue: "($0.00)" });
+          setNetworkFee({ fee: "0.000000000000 POL", usdValue: "($0.00)" });
         }
       } finally {
         if (isMounted) setIsLoading(false);
@@ -212,19 +183,15 @@ export const useAssets = (
   const nativeTokenIdMap: Record<number, string> = {
     137: "polygon",
     56: "bnb",
-    43114: "avalanche",
-    8453: "base",
-    42161: "arbitrum",
-    1: "ethereum",
   };
 
-  const chainName = nativeTokenIdMap[network.chainId as number] || "ethereum";
+  const chainName = nativeTokenIdMap[network.chainId as number] || "polygon";
 
   useEffect(() => {
     const chain = getAssets(chainName, "chain");
     const token = getAssets(subscriptionDetails.token.toLowerCase(), "token");
-    setChainIcon(chain || getAssets("ethereum", "chain"));
-    setTokenIcon(token || getAssets("usdc", "token"));
+    setChainIcon(chain || getAssets("polygon", "chain"));
+    setTokenIcon(token || getAssets("usdt", "token"));
   }, [chainName, subscriptionDetails.token]);
 
   return { chainIcon, tokenIcon };
@@ -233,61 +200,102 @@ export const useAssets = (
 export const useSubscriptionInfo = (
   network: UseAppKitNetworkReturn,
   account: UseAppKitAccountReturn,
-  subscriptionDetails: SubscriptionDetails
+  subscriptionDetails: SubscriptionDetails,
+  pausePolling: boolean = false
 ) => {
   const { tokenDetails } = useTokenDetails(network, subscriptionDetails);
 
-  const abi = getTokenABI(tokenDetails?.name || "USDC");
+  const tokenAbi = getTokenABI(tokenDetails?.name || "USDT");
   const papayaAddress = tokenDetails?.papayaAddress || "0x0";
   const tokenAddress = tokenDetails?.ercAddress || "0x0";
 
-  const papayaBalance = useContractData(
+  // Papaya balance is in 18 decimals.
+  const papayaBalance18 = useContractData(
     papayaAddress as Address,
     Papaya,
     "balanceOf",
-    [account.address as Address]
+    [account.address as Address],
+    1000,
+    pausePolling
   );
 
-  const allowance = useContractData(tokenAddress as Address, abi, "allowance", [
-    account.address as Address,
-    papayaAddress as Address,
-  ]);
-
-  const tokenBalance = useContractData(
+  // Allowance from token contract (in token decimals, e.g., 6 for USDC)
+  const tokenAllowance = useContractData(
     tokenAddress as Address,
-    abi,
-    "balanceOf",
-    [account.address as Address]
+    tokenAbi,
+    "allowance",
+    [account.address as Address, papayaAddress as Address],
+    1000,
+    pausePolling
   );
 
+  // Token balance is in token units (e.g., 6 decimals for USDC)
+  const userTokenBalance = useContractData(
+    tokenAddress as Address,
+    tokenAbi,
+    "balanceOf",
+    [account.address as Address],
+    1000,
+    pausePolling
+  );
+
+  // Convert the subscription cost (provided in human-readable form) to token units (6 decimals)
+  const subscriptionCostTokenUnits = parseUnits(subscriptionDetails.cost, 6); // e.g. "0.99" becomes 990000 (if 6 decimals)
+  // Convert that cost to 18 decimals for internal comparison with Papaya balance.
+  const subscriptionCost18 = subscriptionCostTokenUnits * BigInt(1e12);
+
+  // Compute the subscription rate in 18 decimals per second using your helper.
+  // For example, if payCycle is "monthly", subscriptionRate18 = subscriptionCost18 / seconds_in_month.
+  const subscriptionRate18 = calculateSubscriptionRate(
+    subscriptionCost18,
+    subscriptionDetails.payCycle
+  );
+
+  // Define the safe liquidation period (2 days in seconds).
+  const SAFE_LIQUIDATION_PERIOD_SECONDS = BigInt(172800);
+  // Compute the safety buffer (in 18 decimals) covering the safe liquidation period.
+  const safetyBuffer18 = subscriptionRate18 * SAFE_LIQUIDATION_PERIOD_SECONDS;
+  // The total required deposit in 18 decimals is the subscription cost plus the safety buffer.
+  const requiredDeposit18 = subscriptionCost18 + safetyBuffer18;
+  // Convert the required deposit into token units (6 decimals).
+  const requiredDepositTokenUnits = requiredDeposit18 / BigInt(1e12);
+
+  // Determine if a deposit is needed:
+  // Papaya balance is in 18 decimals; if it's less than requiredDeposit18, deposit is needed.
   const needsDeposit =
-    papayaBalance == null ||
-    papayaBalance < parseUnits(subscriptionDetails.cost, 18);
+    papayaBalance18 == null || papayaBalance18 < requiredDeposit18;
 
-  const depositAmount =
-    papayaBalance != null && papayaBalance > BigInt(0)
-      ? parseUnits(subscriptionDetails.cost, 6) -
-        papayaBalance / parseUnits("1", 12)
-      : parseUnits(subscriptionDetails.cost, 6);
+  // Calculate how much deposit is missing in token units (6 decimals).
+  // Convert existing Papaya balance from 18 decimals to token units:
+  const currentDepositTokenUnits =
+    papayaBalance18 != null ? papayaBalance18 / parseUnits("1", 12) : BigInt(0);
+  const depositShortfallTokenUnits =
+    currentDepositTokenUnits >= requiredDepositTokenUnits
+      ? BigInt(0)
+      : requiredDepositTokenUnits - currentDepositTokenUnits;
 
-  const needsApproval = allowance == null || allowance < depositAmount;
+  // needsApproval is true if token allowance is less than the required deposit (in token units).
+  const needsApproval =
+    tokenAllowance == null || tokenAllowance < depositShortfallTokenUnits;
 
-  const hasSufficientBalance =
-    tokenBalance != null && tokenBalance >= depositAmount;
-
+  // Determine if the user can subscribe:
+  // If no deposit is needed: Papaya balance (18 decimals) must meet the required deposit.
+  // If deposit is needed: the user's token balance (6 decimals) must cover the shortfall.
   const canSubscribe =
-    !needsDeposit &&
-    papayaBalance != null &&
-    papayaBalance >= parseUnits(subscriptionDetails.cost, 18);
+    (!needsDeposit &&
+      papayaBalance18 != null &&
+      papayaBalance18 >= requiredDeposit18) ||
+    (needsDeposit &&
+      userTokenBalance != null &&
+      userTokenBalance >= depositShortfallTokenUnits);
 
   return {
-    papayaBalance,
-    allowance,
-    tokenBalance,
+    papayaBalance: papayaBalance18,
+    allowance: tokenAllowance,
+    tokenBalance: userTokenBalance,
     needsDeposit,
-    depositAmount,
+    depositAmount: depositShortfallTokenUnits, // in token units (6 decimals)
     needsApproval,
-    hasSufficientBalance,
     canSubscribe,
   };
 };
@@ -295,25 +303,26 @@ export const useSubscriptionInfo = (
 export const useSubscriptionModal = (
   network: UseAppKitNetworkReturn | null,
   account: UseAppKitAccountReturn,
-  subscriptionDetails: SubscriptionDetails
+  subscriptionDetails: SubscriptionDetails,
+  pausePolling: boolean
 ) => {
   const defaultCaipNetwork: CaipNetwork = {
-    id: 1,
+    id: 137,
     chainNamespace: "eip155",
-    caipNetworkId: "eip155:1",
-    name: "Ethereum",
+    caipNetworkId: "eip155:137",
+    name: "Polygon",
     nativeCurrency: {
-      name: "Ether",
-      symbol: "ETH",
+      name: "POL",
+      symbol: "POL",
       decimals: 18,
     },
-    rpcUrls: mainnet.rpcUrls,
+    rpcUrls: polygon.rpcUrls,
   };
 
   const defaultNetwork: UseAppKitNetworkReturn = {
     caipNetwork: defaultCaipNetwork,
-    chainId: 1,
-    caipNetworkId: "eip155:1",
+    chainId: 137,
+    caipNetworkId: "eip155:137",
     switchNetwork: () => {},
   };
 
@@ -334,14 +343,14 @@ export const useSubscriptionModal = (
     needsDeposit: false,
     depositAmount: BigInt(0),
     needsApproval: false,
-    hasSufficientBalance: false,
     canSubscribe: false,
   };
 
   const subscriptionInfo = useSubscriptionInfo(
     activeNetwork,
     account,
-    subscriptionDetails
+    subscriptionDetails,
+    pausePolling
   );
 
   if (isUnsupportedNetwork || isUnsupportedToken) {

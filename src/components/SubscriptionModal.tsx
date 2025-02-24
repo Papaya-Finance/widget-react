@@ -1,13 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/react";
-import { Address, parseUnits } from "viem";
+import { Address, formatUnits, parseUnits } from "viem";
 import isEqual from "lodash.isequal";
 import Skeleton from "react-loading-skeleton";
 import LogoIcon from "../assets/logo.svg";
 import SuccessIcon from "../assets/others/success.svg";
 import FailIcon from "../assets/others/fail.svg";
 import { Approve } from "./Buttons/Approve";
-import { Deposit } from "./Buttons/Deposit";
 import { Subscribe } from "./Buttons/Subscribe";
 import { SubscriptionDetails } from "../types";
 import {
@@ -20,64 +19,59 @@ import { calculateSubscriptionRate } from "../utils";
 import "react-loading-skeleton/dist/skeleton.css";
 import "../styles/styles.css";
 
-interface ModalProps {
+export const SubscriptionModal: React.FC<{
   open: boolean;
   onClose: () => void;
   subscriptionDetails: SubscriptionDetails;
-}
-
-export const SubscriptionModal: React.FC<ModalProps> = ({
-  open,
-  onClose,
-  subscriptionDetails,
-}) => {
-  const [isSubscriptionSuccessful, setIsSubscriptionSuccessful] =
-    useState(false);
+}> = ({ open, onClose, subscriptionDetails }) => {
+  const [subscriptionConfirmed, setSubscriptionConfirmed] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorTitle, setErrorTitle] = useState("");
   const [errorDescription, setErrorDescription] = useState("");
+  const [cachedSubscriptionInfo, setCachedSubscriptionInfo] =
+    useState<any>(null);
+  const [pausePolling, setPausePolling] = useState(false);
 
   const account = useAppKitAccount();
   const network = useAppKitNetwork();
 
   useEffect(() => {
-    if (isSubscriptionSuccessful) {
-      return;
+    if (!open) {
+      setSubscriptionConfirmed(false);
+      setShowError(false);
+      setPausePolling(false);
     }
-  }, [isSubscriptionSuccessful]);
+  }, [open]);
 
-  const {
-    chainIcon,
-    tokenIcon,
-    needsDeposit,
-    depositAmount,
-    needsApproval,
-    hasSufficientBalance,
-    canSubscribe,
-    isUnsupportedNetwork,
-    isUnsupportedToken,
-    tokenDetails,
-  } = useSubscriptionModal(network, account, subscriptionDetails);
+  const subscriptionInfo = useSubscriptionModal(
+    network,
+    account,
+    subscriptionDetails,
+    pausePolling
+  );
+  const finalSubscriptionInfo = cachedSubscriptionInfo || subscriptionInfo;
 
-  const functionName = needsApproval
+  const functionName = finalSubscriptionInfo.needsApproval
     ? "approve"
-    : needsDeposit
+    : finalSubscriptionInfo.needsDeposit
     ? "deposit"
     : "subscribe";
 
-  const abi =
-    functionName == "approve" ? getTokenABI(tokenDetails.name) : Papaya;
-  const address =
-    functionName == "approve"
-      ? tokenDetails.ercAddress
-      : tokenDetails.papayaAddress;
-  const args = needsApproval
+  const abiToUse =
+    functionName === "approve"
+      ? getTokenABI(finalSubscriptionInfo.tokenDetails.name)
+      : Papaya;
+  const addressToUse =
+    functionName === "approve"
+      ? finalSubscriptionInfo.tokenDetails.ercAddress
+      : finalSubscriptionInfo.tokenDetails.papayaAddress;
+  const args = finalSubscriptionInfo.needsApproval
     ? [
-        tokenDetails.papayaAddress as Address,
-        parseUnits(subscriptionDetails.cost, 6),
+        finalSubscriptionInfo.tokenDetails.papayaAddress as Address,
+        finalSubscriptionInfo.depositAmount,
       ]
-    : needsDeposit
-    ? [depositAmount, false]
+    : finalSubscriptionInfo.needsDeposit
+    ? [finalSubscriptionInfo.depositAmount, false]
     : [
         subscriptionDetails.toAddress as Address,
         calculateSubscriptionRate(
@@ -96,8 +90,8 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
   }
 
   const functionDetails = useDeepMemo({
-    abi,
-    address: address as Address,
+    abi: abiToUse,
+    address: addressToUse as Address,
     functionName,
     args,
     account: account.address as Address,
@@ -111,14 +105,23 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
   );
 
   useEffect(() => {
-    if (isUnsupportedNetwork || isUnsupportedToken) {
+    if (
+      finalSubscriptionInfo.isUnsupportedNetwork ||
+      finalSubscriptionInfo.isUnsupportedToken
+    ) {
       setShowError(true);
-      if (isUnsupportedNetwork && !isUnsupportedToken) {
+      if (
+        finalSubscriptionInfo.isUnsupportedNetwork &&
+        !finalSubscriptionInfo.isUnsupportedToken
+      ) {
         setErrorTitle("Unsupported network");
         setErrorDescription(
           "The selected network is not supported. Please switch to a supported network."
         );
-      } else if (!isUnsupportedToken && isUnsupportedToken) {
+      } else if (
+        !finalSubscriptionInfo.isUnsupportedToken &&
+        finalSubscriptionInfo.isUnsupportedToken
+      ) {
         setErrorTitle("Unsupported token");
         setErrorDescription(
           "The selected token is not supported on this network. Please select a different token."
@@ -132,14 +135,10 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
       setErrorTitle("");
       setErrorDescription("");
     }
-  }, [isUnsupportedNetwork, isUnsupportedToken]);
-
-  useEffect(() => {
-    if (!open) {
-      setIsSubscriptionSuccessful(false);
-      setShowError(false);
-    }
-  }, [open]);
+  }, [
+    finalSubscriptionInfo.isUnsupportedNetwork,
+    finalSubscriptionInfo.isUnsupportedToken,
+  ]);
 
   if (!open) return null;
 
@@ -170,7 +169,7 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
         <div className="modal-body">
           <div
             className={`modal-body-container body-main ${
-              showError || isSubscriptionSuccessful ? "hidden" : ""
+              showError || subscriptionConfirmed ? "hidden" : ""
             }`}
           >
             <div className="summary-section">
@@ -179,12 +178,12 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                 <p className="detail-label">Subscription Cost:</p>
                 <div className="detail-icons">
                   <img
-                    src={chainIcon}
+                    src={finalSubscriptionInfo.chainIcon}
                     alt="Chain Icon"
                     className="chain-icon"
                   />
                   <img
-                    src={tokenIcon}
+                    src={finalSubscriptionInfo.tokenIcon}
                     alt="Token Icon"
                     className="token-icon"
                   />
@@ -221,6 +220,23 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                 </p>
               </div>
             </div>
+            {!isFeeLoading && finalSubscriptionInfo.needsDeposit && (
+              <div className="notice-text">
+                <span>You need to deposit approximately</span>
+                <span className="detail-value small">
+                  {formatUnits(finalSubscriptionInfo.depositAmount!, 6)}
+                </span>
+                <img
+                  src={finalSubscriptionInfo.tokenIcon}
+                  alt="Token Icon"
+                  className="token-icon-small"
+                />
+                <span>to cover the subscription</span>
+                <span>cost plus a safety</span>
+                <span>buffer.</span>
+              </div>
+            )}
+
             {isFeeLoading ? (
               <div className="buttons-section">
                 <Skeleton className="buttons-loader" />
@@ -229,31 +245,16 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
             ) : (
               <div className="buttons-section">
                 <Approve
-                  chainId={network.chainId as number}
-                  needsApproval={needsApproval}
-                  needsDeposit={needsDeposit}
-                  approvalAmount={parseUnits(subscriptionDetails.cost, 6)}
-                  abi={getTokenABI(tokenDetails.name)}
-                  tokenContractAddress={tokenDetails.ercAddress as Address}
-                  papayaAddress={tokenDetails.papayaAddress as Address}
-                  onSuccess={() => {
-                    setShowError(false);
-                    setErrorTitle("Token approval failed");
-                    setErrorDescription("");
-                  }}
-                  onError={(title, description) => {
-                    setShowError(true);
-                    setErrorTitle(title);
-                    setErrorDescription(description);
-                  }}
-                />
-                <Deposit
-                  chainId={network.chainId as number}
-                  needsDeposit={needsDeposit}
-                  depositAmount={depositAmount}
-                  abi={Papaya}
-                  papayaAddress={tokenDetails.papayaAddress as Address}
-                  hasSufficientBalance={hasSufficientBalance}
+                  needsApproval={finalSubscriptionInfo.needsApproval!}
+                  needsDeposit={finalSubscriptionInfo.needsDeposit!}
+                  approvalAmount={finalSubscriptionInfo.depositAmount!}
+                  abi={getTokenABI(finalSubscriptionInfo.tokenDetails.name)}
+                  tokenContractAddress={
+                    finalSubscriptionInfo.tokenDetails.ercAddress as Address
+                  }
+                  papayaAddress={
+                    finalSubscriptionInfo.tokenDetails.papayaAddress as Address
+                  }
                   onSuccess={() => {
                     setShowError(false);
                     setErrorTitle("");
@@ -267,17 +268,25 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                 />
                 <Subscribe
                   chainId={network.chainId as number}
-                  needsDeposit={needsDeposit}
-                  canSubscribe={canSubscribe}
+                  needsApproval={finalSubscriptionInfo.needsApproval!}
+                  needsDeposit={finalSubscriptionInfo.needsDeposit!}
+                  canSubscribe={finalSubscriptionInfo.canSubscribe!}
                   abi={Papaya}
                   toAddress={subscriptionDetails.toAddress as Address}
                   subscriptionCost={parseUnits(subscriptionDetails.cost, 18)}
                   subscriptionCycle={subscriptionDetails.payCycle}
-                  papayaAddress={tokenDetails.papayaAddress as Address}
+                  papayaAddress={
+                    finalSubscriptionInfo.tokenDetails.papayaAddress as Address
+                  }
+                  depositAmount={finalSubscriptionInfo.depositAmount!}
+                  onStart={() => {
+                    if (!cachedSubscriptionInfo) {
+                      setCachedSubscriptionInfo(finalSubscriptionInfo);
+                      setPausePolling(true);
+                    }
+                  }}
                   onSuccess={() => {
-                    setIsSubscriptionSuccessful(() => {
-                      return true;
-                    });
+                    setSubscriptionConfirmed(true);
                     setShowError(false);
                     setErrorTitle("");
                     setErrorDescription("");
@@ -286,12 +295,13 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
                     setShowError(true);
                     setErrorTitle(title);
                     setErrorDescription(description);
+                    setPausePolling(false);
                   }}
                 />
               </div>
             )}
           </div>
-          {showError && !isSubscriptionSuccessful && (
+          {showError && !setSubscriptionConfirmed && (
             <div className="modal-body-container body-error">
               <div className="error-section">
                 <img
@@ -304,7 +314,7 @@ export const SubscriptionModal: React.FC<ModalProps> = ({
               </div>
             </div>
           )}
-          {!showError && isSubscriptionSuccessful && (
+          {!showError && subscriptionConfirmed && (
             <div className="modal-body-container body-successful">
               <div className="successful-section">
                 <img
