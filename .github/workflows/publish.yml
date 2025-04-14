@@ -17,8 +17,9 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: Install
-        run: npm install --force
+      - name: Install dependencies
+        # Using npm install instead of npm ci since package-lock.json might not exist
+        run: npm install
 
       - name: Build
         run: npm run build
