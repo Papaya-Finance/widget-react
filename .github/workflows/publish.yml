@@ -18,8 +18,16 @@ jobs:
           registry-url: 'https://registry.npmjs.org'
 
       - name: Install dependencies
-        # Using npm install instead of npm ci since package-lock.json might not exist
         run: npm install
+
+      - name: Update version from GitHub release
+        run: |
+          # Extract version from GitHub release tag (removes 'v' prefix if present)
+          RELEASE_VERSION=${GITHUB_REF#refs/tags/}
+          RELEASE_VERSION=${RELEASE_VERSION#v}
+          
+          # Update package.json version
+          npm version $RELEASE_VERSION --no-git-tag-version
 
       - name: Build
         run: npm run build
